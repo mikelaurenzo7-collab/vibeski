@@ -1,26 +1,26 @@
 {
   "expo": {
-    "name": "My App",
-    "slug": "my-app",
+    "name": "Field of Dreams",
+    "slug": "field-of-dreams",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "fieldofdreams",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1B3A2D"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.myapp"
+      "bundleIdentifier": "com.fieldofdreams"
     },
     "android": {
-      "package": "com.myapp",
+      "package": "com.fieldofdreams",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1B3A2D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
