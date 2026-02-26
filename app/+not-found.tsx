@@ -1,16 +1,17 @@
-// template
 import { Link, Stack } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Colors from "@/constants/colors";
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: "Oops!" }} />
+      <Stack.Screen options={{ title: "Not Found" }} />
       <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn&apos;t exist.</Text>
-
+        <Ionicons name="compass-outline" size={48} color={Colors.accent} />
+        <Text style={styles.title}>Page not found</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
+          <Text style={styles.linkText}>Go back home</Text>
         </Link>
       </View>
     </>
@@ -23,17 +24,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
+    backgroundColor: Colors.cream,
+    gap: 12,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontFamily: "DMSans_600SemiBold",
+    color: Colors.black,
   },
   link: {
-    marginTop: 15,
-    paddingVertical: 15,
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
   },
   linkText: {
     fontSize: 14,
-    color: "#2e78b7",
+    fontFamily: "DMSans_500Medium",
+    color: Colors.white,
   },
 });
