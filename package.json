@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ai-sdk/xai": "^3.0.67",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo/vector-icons": "^15.0.3",
     "@google/generative-ai": "^0.24.1",

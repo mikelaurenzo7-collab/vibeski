@@ -18,7 +18,8 @@ export async function streamChat(
   messages: { role: string; content: string }[],
   onChunk: (text: string) => void,
   agentId?: string,
-  conversationId?: string
+  conversationId?: string,
+  preferredModel?: string
 ) {
   const baseUrl = getApiUrl();
   const deviceId = await getDeviceId();
@@ -29,6 +30,9 @@ export async function streamChat(
   }
   if (conversationId) {
     body.conversationId = conversationId;
+  }
+  if (preferredModel) {
+    body.preferredModel = preferredModel;
   }
 
   const headers: Record<string, string> = {
@@ -87,7 +91,7 @@ export async function streamChat(
         if (parsed.error) throw new Error(parsed.error);
         if (parsed.content) onChunk(parsed.content);
       } catch (e) {
-        if (e instanceof Error && e.message !== 'An error occurred') continue;
+        if (!(e instanceof Error) || e.message.startsWith('Unexpected token')) continue;
         throw e;
       }
     }

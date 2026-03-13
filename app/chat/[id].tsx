@@ -19,6 +19,7 @@ import { useChat, type Message } from '@/lib/chat-context';
 import { useAuth, getAuthToken } from '@/lib/auth-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { streamChat } from '@/lib/stream-chat';
+import { useModel, MODELS } from '@/lib/model-context';
 import { getApiUrl } from '@/lib/query-client';
 import { parseMultiFileResponse } from '@/lib/file-parser';
 import { MessageBubble } from '@/components/MessageBubble';
@@ -39,6 +40,7 @@ export default function ChatScreen() {
   const { conversations, saveMessages } = useChat();
   const { isLoggedIn, isLoading: authLoading } = useAuth();
   const { refreshStatus } = useSubscription();
+  const { preferredModel } = useModel();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
@@ -234,7 +236,7 @@ export default function ChatScreen() {
             return updated;
           });
         }
-      }, agent.id, id);
+      }, agent.id, id, preferredModel);
 
       refreshStatus();
 
