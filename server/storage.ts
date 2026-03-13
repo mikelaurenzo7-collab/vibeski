@@ -1,9 +1,10 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users,
   conversations,
   messages,
+  userSettings,
   type User,
   type InsertUser,
   type Conversation,
@@ -27,6 +28,16 @@ export interface IStorage {
   createMessage(data: InsertMessage): Promise<Message>;
   getConversationMessages(conversationId: number): Promise<Message[]>;
   saveMessages(conversationId: number, msgs: { role: string; content: string }[]): Promise<void>;
+
+  getUserSettings(userId: string): Promise<Record<string, string>>;
+  setUserSetting(userId: string, key: string, value: string): Promise<void>;
+  deleteUserSetting(userId: string, key: string): Promise<void>;
+  getUserAnalytics(userId: string): Promise<{
+    totalProjects: number;
+    totalMessages: number;
+    agentUsage: Record<string, number>;
+    recentActivity: { date: string; count: number }[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -134,6 +145,80 @@ export class DatabaseStorage implements IStorage {
         .set({ updatedAt: new Date() })
         .where(eq(conversations.id, conversationId));
     });
+  }
+
+  async getUserSettings(userId: string): Promise<Record<string, string>> {
+    const rows = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      result[row.key] = row.value;
+    }
+    return result;
+  }
+
+  async setUserSetting(userId: string, key: string, value: string): Promise<void> {
+    const existing = await db
+      .select()
+      .from(userSettings)
+      .where(and(eq(userSettings.userId, userId), eq(userSettings.key, key)));
+
+    if (existing.length > 0) {
+      await db
+        .update(userSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(and(eq(userSettings.userId, userId), eq(userSettings.key, key)));
+    } else {
+      await db.insert(userSettings).values({ userId, key, value });
+    }
+  }
+
+  async deleteUserSetting(userId: string, key: string): Promise<void> {
+    await db
+      .delete(userSettings)
+      .where(and(eq(userSettings.userId, userId), eq(userSettings.key, key)));
+  }
+
+  async getUserAnalytics(userId: string): Promise<{
+    totalProjects: number;
+    totalMessages: number;
+    agentUsage: Record<string, number>;
+    recentActivity: { date: string; count: number }[];
+  }> {
+    const userConvos = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.userId, userId));
+
+    const totalProjects = userConvos.length;
+
+    const agentUsage: Record<string, number> = {};
+    for (const c of userConvos) {
+      agentUsage[c.agentId] = (agentUsage[c.agentId] || 0) + 1;
+    }
+
+    let totalMessages = 0;
+    if (totalProjects > 0) {
+      const convoIds = userConvos.map((c) => c.id);
+      for (const cid of convoIds) {
+        const msgs = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.conversationId, cid));
+        totalMessages += msgs.length;
+      }
+    }
+
+    const activityMap: Record<string, number> = {};
+    for (const c of userConvos) {
+      const dateKey = c.updatedAt.toISOString().split('T')[0];
+      activityMap[dateKey] = (activityMap[dateKey] || 0) + 1;
+    }
+    const recentActivity = Object.entries(activityMap)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 14)
+      .map(([date, count]) => ({ date, count }));
+
+    return { totalProjects, totalMessages, agentUsage, recentActivity };
   }
 }
 

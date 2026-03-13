@@ -696,6 +696,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/settings", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getUserSettings(req.userId!);
+      res.json(settings);
+    } catch (error) {
+      console.error("Get settings error:", error);
+      res.status(500).json({ error: "Failed to get settings" });
+    }
+  });
+
+  app.put("/api/settings", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { settings } = req.body;
+      if (!settings || typeof settings !== 'object') {
+        return res.status(400).json({ error: "Settings object required" });
+      }
+      for (const [key, value] of Object.entries(settings)) {
+        if (typeof value === 'string' && value.trim()) {
+          await storage.setUserSetting(req.userId!, key, value);
+        }
+      }
+      const updated = await storage.getUserSettings(req.userId!);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update settings error:", error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  app.delete("/api/settings/:key", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteUserSetting(req.userId!, req.params.key);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete setting error:", error);
+      res.status(500).json({ error: "Failed to delete setting" });
+    }
+  });
+
+  app.get("/api/analytics", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const analytics = await storage.getUserAnalytics(req.userId!);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Analytics error:", error);
+      res.status(500).json({ error: "Failed to get analytics" });
+    }
+  });
+
   app.get("/api/subscription/status", (req: Request, res: Response) => {
     const deviceId = req.headers['x-device-id'] as string || 'anonymous';
     const status = getSubscriptionStatus(deviceId);

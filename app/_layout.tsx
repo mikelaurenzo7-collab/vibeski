@@ -31,6 +31,7 @@ function RootLayoutNav() {
       <Stack.Screen name="templates" />
       <Stack.Screen name="pricing" />
       <Stack.Screen name="billing" />
+      <Stack.Screen name="command-center" />
     </Stack>
   );
 }
