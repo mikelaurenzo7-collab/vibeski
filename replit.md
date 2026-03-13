@@ -12,10 +12,12 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - **Rich Rendering**: Custom markdown parser, HTML preview via iframe/WebView
 - **Payments**: Stripe integration for subscription management
 
-## Subscription Tiers
-- **Free**: 10 generations/day, Builder & Writer agents, 4K token limit
-- **Pro ($19/mo)**: 100 generations/day, all 15 agents, 16K tokens, HTML live previews
-- **Elite ($49/mo)**: Unlimited generations, all 15 agents, 16K tokens, priority support
+## Subscription & Credit System
+- **Free**: 10 credits/day (resets daily), Builder & Writer agents only, 4K token limit
+- **Pro ($19/mo)**: 500 credits/month, all 15 agents, 16K tokens, HTML live previews, $0.05/credit overage
+- **Elite ($49/mo)**: 2,000 credits/month, all 15 agents, 16K tokens, priority support, $0.03/credit overage
+- Credit costs per agent: 1 credit (Builder, Writer, Converter, GitHub), 2 credits (Strategist, Code, Designer, Analyst, Branding, Thinker, Content), 3 credits (SEO Pro, Page Gen, Optimizer, Cloner)
+- Overages: paid users are never locked out; usage beyond plan limits is billed at per-credit overage rates at end of billing cycle
 
 ## Multi-Model Strategy
 - **Primary**: Raptor (gpt-4.1-mini via Replit AI Integrations) — fast, reliable, great for all agent types

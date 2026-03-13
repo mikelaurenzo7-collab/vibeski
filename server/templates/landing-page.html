@@ -1,459 +1,335 @@
-<!doctype html>
-<html>
-  <head>
-    <title>APP_NAME_PLACEHOLDER</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        margin: 0;
-        padding: 32px 20px;
-        text-align: center;
-        background: #fff;
-        color: #222;
-        line-height: 1.5;
-        min-height: 100vh;
-      }
-      .wrapper {
-        max-width: 480px;
-        margin: 0 auto;
-      }
-      h1 {
-        font-size: 26px;
-        font-weight: 600;
-        margin: 0;
-        color: #111;
-      }
-      .subtitle {
-        font-size: 15px;
-        color: #666;
-        margin-top: 8px;
-        margin-bottom: 32px;
-      }
-      .loading {
-        display: none;
-        margin: 60px 0;
-      }
-      .spinner {
-        border: 2px solid #ddd;
-        border-top-color: #333;
-        border-radius: 50%;
-        width: 32px;
-        height: 32px;
-        animation: spin 0.8s linear infinite;
-        margin: 20px auto;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      .loading-text {
-        font-size: 16px;
-        color: #444;
-      }
-      .content {
-        display: block;
-      }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="FIELD OF DREAMS — 15 AI agents for building, branding, writing, coding, SEO, and more. Your entire creative team, powered by AI."/>
+  <meta name="theme-color" content="#162E23"/>
+  <title>FIELD OF DREAMS — AI Agents for Creators & Builders</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --primary:#162E23;--primary-light:#1F4032;--accent:#C9A24E;--accent-light:#DABB6F;
+      --cream:#FAF6EF;--cream-dark:#F0E9DD;--white:#FFFFFF;--black:#1C1B19;
+      --gray:#7A736A;--gray-light:#A9A29A;--gray-dark:#504A43;--divider:#EBE5DB;
+      --success:#2F6B47;--error:#B83B3B;
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--cream);color:var(--black);line-height:1.6;-webkit-font-smoothing:antialiased}
+    .container{max-width:1120px;margin:0 auto;padding:0 24px}
 
-      .steps-container {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
+    /* NAV */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(22,46,35,0.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+    .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .nav-logo{font-size:22px}
+    .nav-name{font-size:16px;font-weight:700;color:var(--white);letter-spacing:1.5px;text-transform:uppercase}
+    .nav-links{display:flex;align-items:center;gap:8px}
+    .nav-link{color:rgba(255,255,255,0.6);font-size:14px;font-weight:500;text-decoration:none;padding:8px 14px;border-radius:8px;transition:all 0.2s}
+    .nav-link:hover{color:var(--white);background:rgba(255,255,255,0.08)}
+    .nav-cta{background:var(--accent);color:var(--primary);font-size:13px;font-weight:700;padding:9px 20px;border-radius:10px;text-decoration:none;transition:all 0.2s;letter-spacing:0.3px}
+    .nav-cta:hover{background:var(--accent-light);transform:translateY(-1px)}
 
-      .step {
-        padding: 24px;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        text-align: center;
-        background: #fafafa;
-      }
-      .step-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-      .step-number {
-        width: 28px;
-        height: 28px;
-        border: 1px solid #999;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 14px;
-        flex-shrink: 0;
-        color: #555;
-      }
-      .step-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin: 0;
-        color: #222;
-      }
-      .step-description {
-        font-size: 14px;
-        margin-bottom: 16px;
-        color: #666;
-      }
+    /* HERO */
+    .hero{padding:140px 0 80px;text-align:center;background:var(--primary);position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,162,78,0.08) 0%,transparent 60%)}
+    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(201,162,78,0.12);border:1px solid rgba(201,162,78,0.2);color:var(--accent);font-size:12px;font-weight:600;padding:6px 16px;border-radius:20px;margin-bottom:24px;letter-spacing:0.5px}
+    .hero-badge-dot{width:6px;height:6px;border-radius:3px;background:var(--accent);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    .hero h1{font-size:clamp(36px,6vw,64px);font-weight:700;color:var(--white);line-height:1.1;letter-spacing:-1.5px;margin-bottom:20px;max-width:700px;margin-left:auto;margin-right:auto}
+    .hero h1 span{color:var(--accent)}
+    .hero-sub{font-size:clamp(16px,2vw,20px);color:rgba(255,255,255,0.55);max-width:540px;margin:0 auto 40px;line-height:1.6;font-weight:400}
+    .hero-actions{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--primary);font-size:16px;font-weight:700;padding:16px 32px;border-radius:14px;text-decoration:none;transition:all 0.25s;letter-spacing:0.2px}
+    .btn-primary:hover{background:var(--accent-light);transform:translateY(-2px);box-shadow:0 8px 30px rgba(201,162,78,0.25)}
+    .btn-secondary{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);color:var(--white);font-size:15px;font-weight:500;padding:15px 28px;border-radius:14px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);transition:all 0.25s}
+    .btn-secondary:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2)}
+    .hero-stats{display:flex;justify-content:center;gap:48px;margin-top:56px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.06)}
+    .stat{text-align:center}
+    .stat-number{font-size:28px;font-weight:700;color:var(--accent);letter-spacing:-0.5px}
+    .stat-label{font-size:13px;color:rgba(255,255,255,0.4);margin-top:2px;font-weight:500}
 
-      .store-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      .store-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 12px 20px;
-        font-size: 14px;
-        font-weight: 500;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        text-decoration: none;
-        color: #333;
-        background: #fff;
-        transition: all 0.15s;
-      }
-      .store-button:hover {
-        background: #f5f5f5;
-        border-color: #999;
-      }
-      .store-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding: 8px 0;
-        font-size: 13px;
-        font-weight: 400;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        color: #666;
-        background: none;
-        border: none;
-        transition: color 0.15s;
-      }
-      .store-link:hover {
-        color: #333;
-      }
-      .store-link .store-icon {
-        width: 14px;
-        height: 14px;
-      }
-      .store-icon {
-        width: 18px;
-        height: 18px;
-      }
+    /* AGENTS */
+    .agents{padding:80px 0;background:var(--white)}
+    .section-label{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:12px}
+    .section-title{font-size:clamp(28px,4vw,40px);font-weight:700;color:var(--black);text-align:center;letter-spacing:-0.8px;line-height:1.2;margin-bottom:12px}
+    .section-sub{font-size:16px;color:var(--gray);text-align:center;max-width:480px;margin:0 auto 48px}
+    .agents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+    .agent-card{background:var(--cream);border:1px solid var(--divider);border-radius:14px;padding:20px;transition:all 0.25s;cursor:default}
+    .agent-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(22,46,35,0.08);border-color:rgba(201,162,78,0.3)}
+    .agent-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
+    .agent-name{font-size:15px;font-weight:700;color:var(--black);margin-bottom:2px}
+    .agent-desc{font-size:13px;color:var(--gray);line-height:1.4}
+    .agent-badge{display:inline-block;font-size:10px;font-weight:700;color:var(--accent);background:rgba(201,162,78,0.1);padding:2px 8px;border-radius:4px;margin-top:8px;letter-spacing:0.5px}
 
-      .qr-section {
-        background: #333;
-        color: #fff;
-        border-color: #333;
-      }
-      .qr-section .step-number {
-        border-color: rgba(255, 255, 255, 0.5);
-        color: #fff;
-      }
-      .qr-section .step-title {
-        color: #fff;
-      }
-      .qr-section .step-description {
-        color: rgba(255, 255, 255, 0.7);
-      }
-      .qr-code {
-        width: 180px;
-        height: 180px;
-        margin: 0 auto 16px;
-        background: #fff;
-        border-radius: 8px;
-        padding: 12px;
-      }
-      .qr-code canvas {
-        width: 100%;
-        height: 100%;
-      }
-      .open-button {
-        display: inline-block;
-        padding: 12px 24px;
-        font-size: 14px;
-        font-weight: 500;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        text-decoration: none;
-        color: #333;
-        background: #fff;
-        transition: opacity 0.15s;
-      }
-      .open-button:hover {
-        opacity: 0.9;
-      }
+    /* FEATURES */
+    .features{padding:80px 0;background:var(--cream)}
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+    .feature-card{background:var(--white);border:1px solid var(--divider);border-radius:16px;padding:28px;transition:all 0.25s}
+    .feature-card:hover{box-shadow:0 6px 20px rgba(22,46,35,0.06)}
+    .feature-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
+    .feature-title{font-size:17px;font-weight:700;color:var(--black);margin-bottom:6px}
+    .feature-desc{font-size:14px;color:var(--gray);line-height:1.6}
 
-      /* Desktop styles */
-      @media (min-width: 768px) {
-        body {
-          padding: 48px 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .wrapper {
-          max-width: 720px;
-        }
-        h1 {
-          font-size: 32px;
-          margin-bottom: 10px;
-        }
-        .subtitle {
-          font-size: 16px;
-          margin-bottom: 40px;
-        }
-        .steps-container {
-          flex-direction: row;
-          gap: 20px;
-          align-items: stretch;
-        }
-        .step {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          padding: 28px;
-        }
-        .step-description {
-          flex-grow: 1;
-        }
-        .store-buttons {
-          flex-direction: column;
-          gap: 10px;
-        }
-        .qr-code {
-          width: 200px;
-          height: 200px;
-        }
-      }
+    /* PRICING */
+    .pricing{padding:80px 0;background:var(--white)}
+    .pricing-toggle{display:flex;justify-content:center;margin-bottom:40px}
+    .pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:960px;margin:0 auto}
+    .price-card{background:var(--cream);border:1px solid var(--divider);border-radius:20px;padding:32px;position:relative;transition:all 0.25s}
+    .price-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(22,46,35,0.08)}
+    .price-card.featured{background:var(--primary);border-color:var(--primary-light)}
+    .price-card.featured .price-name,.price-card.featured .price-amount,.price-card.featured .price-feature{color:var(--white)}
+    .price-card.featured .price-per{color:rgba(255,255,255,0.5)}
+    .price-card.featured .price-desc{color:rgba(255,255,255,0.6)}
+    .price-card.featured .price-feature-icon{color:var(--accent)}
+    .price-card.featured .overage-text{color:rgba(255,255,255,0.5)}
+    .price-popular{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--primary);font-size:11px;font-weight:700;padding:5px 16px;border-radius:20px;letter-spacing:1px;white-space:nowrap}
+    .price-name{font-size:20px;font-weight:700;color:var(--black);margin-bottom:4px}
+    .price-desc{font-size:13px;color:var(--gray);margin-bottom:20px}
+    .price-amount{font-size:48px;font-weight:700;color:var(--black);letter-spacing:-2px;line-height:1}
+    .price-per{font-size:14px;color:var(--gray);font-weight:400;margin-bottom:4px}
+    .credits-label{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--accent);background:rgba(201,162,78,0.1);padding:6px 14px;border-radius:8px;margin:12px 0 20px}
+    .price-card.featured .credits-label{background:rgba(201,162,78,0.15)}
+    .price-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+    .price-feature{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--black);font-weight:400}
+    .price-feature-icon{color:var(--success);flex-shrink:0;margin-top:2px}
+    .overage-text{font-size:12px;color:var(--gray-light);margin-bottom:20px;font-style:italic}
+    .price-btn{display:block;width:100%;text-align:center;padding:14px;border-radius:12px;font-size:15px;font-weight:700;text-decoration:none;transition:all 0.2s;border:none;cursor:pointer}
+    .price-btn-free{background:var(--divider);color:var(--gray-dark)}
+    .price-btn-pro{background:var(--accent);color:var(--primary)}
+    .price-btn-pro:hover{background:var(--accent-light);transform:translateY(-1px)}
+    .price-btn-elite{background:var(--white);color:var(--primary)}
+    .price-btn-elite:hover{opacity:0.9;transform:translateY(-1px)}
 
-      /* Large desktop */
-      @media (min-width: 1024px) {
-        .wrapper {
-          max-width: 800px;
-        }
-        h1 {
-          font-size: 36px;
-        }
-        .steps-container {
-          gap: 28px;
-        }
-        .step {
-          padding: 32px;
-        }
-      }
+    /* CTA */
+    .cta{padding:80px 0;background:var(--primary);text-align:center;position:relative;overflow:hidden}
+    .cta::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 50%,rgba(201,162,78,0.06),transparent 50%)}
+    .cta h2{font-size:clamp(28px,4vw,40px);font-weight:700;color:var(--white);letter-spacing:-0.8px;margin-bottom:16px}
+    .cta p{font-size:17px;color:rgba(255,255,255,0.5);margin-bottom:36px;max-width:460px;margin-left:auto;margin-right:auto}
 
-      /* Dark mode */
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: #0d0d0d;
-          color: #e0e0e0;
-        }
-        h1 {
-          color: #f5f5f5;
-        }
-        .subtitle {
-          color: #999;
-        }
-        .spinner {
-          border-color: #444;
-          border-top-color: #ccc;
-        }
-        .loading-text {
-          color: #aaa;
-        }
-        .step {
-          border-color: #333;
-          background: #1a1a1a;
-        }
-        .step-number {
-          border-color: #666;
-          color: #bbb;
-        }
-        .step-title {
-          color: #f0f0f0;
-        }
-        .step-description {
-          color: #888;
-        }
-        .store-button {
-          border-color: #444;
-          color: #e0e0e0;
-          background: #222;
-        }
-        .store-button:hover {
-          background: #2a2a2a;
-          border-color: #666;
-        }
-        .store-link {
-          color: #888;
-        }
-        .store-link:hover {
-          color: #ccc;
-        }
-        .qr-section {
-          background: #111;
-          border-color: #333;
-        }
-        .qr-section .step-number {
-          border-color: rgba(255, 255, 255, 0.4);
-        }
-        .qr-section .step-description {
-          color: rgba(255, 255, 255, 0.6);
-        }
-        .open-button {
-          background: #f0f0f0;
-          color: #111;
-        }
-        .open-button:hover {
-          background: #e0e0e0;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <div class="loading-text">Opening in Expo Go...</div>
+    /* FOOTER */
+    footer{padding:40px 0;background:var(--black);text-align:center}
+    .footer-brand{font-size:14px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+    .footer-copy{font-size:13px;color:rgba(255,255,255,0.2)}
+
+    /* QR Section for mobile */
+    .qr-section{display:none;padding:60px 0;background:var(--primary);text-align:center}
+    .qr-box{background:var(--white);width:200px;height:200px;margin:0 auto 20px;border-radius:16px;padding:16px}
+    .qr-box canvas{width:100%!important;height:100%!important}
+    .store-btns{display:flex;flex-direction:column;gap:10px;max-width:280px;margin:20px auto 0}
+    .store-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:var(--white);text-decoration:none;font-size:14px;font-weight:500;transition:all 0.2s}
+    .store-btn:hover{background:rgba(255,255,255,0.15)}
+
+    /* Mobile */
+    @media(max-width:768px){
+      .nav-links .nav-link:not(.nav-cta){display:none}
+      .hero-stats{gap:24px;flex-wrap:wrap}
+      .agents-grid{grid-template-columns:repeat(2,1fr)}
+      .features-grid{grid-template-columns:1fr}
+      .pricing-grid{grid-template-columns:1fr;max-width:400px}
+    }
+    @media(max-width:480px){
+      .agents-grid{grid-template-columns:1fr 1fr;gap:8px}
+      .agent-card{padding:14px}
+    }
+
+    /* Animations */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .animate{animation:fadeUp 0.6s ease forwards;opacity:0}
+    .d1{animation-delay:0.1s}.d2{animation-delay:0.2s}.d3{animation-delay:0.3s}.d4{animation-delay:0.4s}
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container nav-inner">
+      <a href="#" class="nav-brand">
+        <span class="nav-logo">🌾</span>
+        <span class="nav-name">Field of Dreams</span>
+      </a>
+      <div class="nav-links">
+        <a href="#agents" class="nav-link">Agents</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+        <a href="EXPO_WEB_URL_PLACEHOLDER" class="nav-cta">Open App</a>
       </div>
+    </div>
+  </nav>
 
-      <div class="content" id="content">
-        <h1>APP_NAME_PLACEHOLDER</h1>
-        <p class="subtitle">Preview this app on your phone</p>
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge animate"><span class="hero-badge-dot"></span> 15 AI Agents Ready</div>
+      <h1 class="animate d1">Your entire <span>creative team</span>, powered by AI</h1>
+      <p class="hero-sub animate d2">Build apps. Write copy. Design brands. Audit SEO. Clone websites. 15 specialized AI agents — one subscription.</p>
+      <div class="hero-actions animate d3">
+        <a href="EXPO_WEB_URL_PLACEHOLDER" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Start Building Free
+        </a>
+        <a href="#pricing" class="btn-secondary">View Pricing</a>
+      </div>
+      <div class="hero-stats animate d4">
+        <div class="stat"><div class="stat-number">15</div><div class="stat-label">AI Agents</div></div>
+        <div class="stat"><div class="stat-number">500+</div><div class="stat-label">Monthly Credits</div></div>
+        <div class="stat"><div class="stat-number">2</div><div class="stat-label">AI Models</div></div>
+        <div class="stat"><div class="stat-number">$0</div><div class="stat-label">To Start</div></div>
+      </div>
+    </div>
+  </section>
 
-        <div class="steps-container">
-          <div class="step">
-            <div class="step-header">
-              <div class="step-number">1</div>
-              <h2 class="step-title">Download Expo Go</h2>
-            </div>
-            <p class="step-description">
-              Expo Go is a free app to test mobile apps
-            </p>
-            <div class="store-buttons" id="store-buttons">
-              <a
-                id="app-store-btn"
-                href="https://apps.apple.com/app/id982107779"
-                class="store-button"
-                target="_blank"
-              >
-                <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
-                  />
-                </svg>
-                App Store
-              </a>
-              <a
-                id="play-store-btn"
-                href="https://play.google.com/store/apps/details?id=host.exp.exponent"
-                class="store-button"
-                target="_blank"
-              >
-                <svg class="store-icon" viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"
-                  />
-                </svg>
-                Google Play
-              </a>
-            </div>
-          </div>
+  <section class="agents" id="agents">
+    <div class="container">
+      <div class="section-label">AI AGENTS</div>
+      <h2 class="section-title">15 specialists. One platform.</h2>
+      <p class="section-sub">Each agent is fine-tuned with deep expertise for its domain.</p>
+      <div class="agents-grid">
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(26,107,74,0.1)">🔨</div><div class="agent-name">Builder</div><div class="agent-desc">Full-stack apps, sites & tools</div><div class="agent-badge">FREE</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(230,126,34,0.1)">✍️</div><div class="agent-name">Writer</div><div class="agent-desc">Content, copy & storytelling</div><div class="agent-badge">FREE</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(139,92,246,0.1)">📈</div><div class="agent-name">Strategist</div><div class="agent-desc">Business plans & growth</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(14,165,233,0.1)">💻</div><div class="agent-name">Code</div><div class="agent-desc">Programming & architecture</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(236,72,153,0.1)">🎨</div><div class="agent-name">Designer</div><div class="agent-desc">UI/UX, branding & visuals</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(20,184,166,0.1)">🔍</div><div class="agent-name">Analyst</div><div class="agent-desc">Research, data & insights</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(217,70,239,0.1)">🏷️</div><div class="agent-name">Branding</div><div class="agent-desc">Brand identity & visual systems</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(99,102,241,0.1)">🧠</div><div class="agent-name">Thinker</div><div class="agent-desc">Creative problem solving</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(5,150,105,0.1)">🔎</div><div class="agent-name">SEO Pro</div><div class="agent-desc">Search optimization & rankings</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(22,163,74,0.1)">📄</div><div class="agent-name">Page Gen</div><div class="agent-desc">SEO pages at scale</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(245,158,11,0.1)">📱</div><div class="agent-name">Content</div><div class="agent-desc">Social media & marketing</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(100,116,139,0.1)">🔄</div><div class="agent-name">Converter</div><div class="agent-desc">File format transformations</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(31,41,55,0.1)">🐙</div><div class="agent-name">GitHub</div><div class="agent-desc">Open source discovery</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(8,145,178,0.1)">⚡</div><div class="agent-name">Optimizer</div><div class="agent-desc">Performance & conversions</div></div>
+        <div class="agent-card"><div class="agent-icon" style="background:rgba(124,58,237,0.1)">📋</div><div class="agent-name">Cloner</div><div class="agent-desc">Website recreation</div></div>
+      </div>
+    </div>
+  </section>
 
-          <div class="step qr-section">
-            <div class="step-header">
-              <div class="step-number">2</div>
-              <h2 class="step-title">Scan QR Code</h2>
-            </div>
-            <p class="step-description">Use your phone's camera or Expo Go</p>
-            <div class="qr-code" id="qr-code"></div>
-            <a href="exps://EXPS_URL_PLACEHOLDER" class="open-button"
-              >Open in Expo Go</a
-            >
-          </div>
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-label">CAPABILITIES</div>
+      <h2 class="section-title">Built for serious creators</h2>
+      <p class="section-sub">Professional tools wrapped in a beautiful, intuitive experience.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(26,107,74,0.08)">⚡</div>
+          <div class="feature-title">Streaming AI Responses</div>
+          <div class="feature-desc">Real-time streaming with dual-model fallback (Raptor + Gemini). Never wait for a response.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(201,162,78,0.08)">🖥️</div>
+          <div class="feature-title">Live HTML Previews</div>
+          <div class="feature-desc">Builder agents generate complete, production-quality web apps rendered instantly in-chat with full-screen preview.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(139,92,246,0.08)">🎛️</div>
+          <div class="feature-title">Command Center</div>
+          <div class="feature-desc">Full admin dashboard — analytics, secrets vault, integrations, data export, and security settings.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(14,165,233,0.08)">📐</div>
+          <div class="feature-title">Template Gallery</div>
+          <div class="feature-desc">24+ curated templates across 6 categories — landing pages, dashboards, portfolios, games, and more.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(236,72,153,0.08)">💳</div>
+          <div class="feature-title">Credit-Based Billing</div>
+          <div class="feature-desc">Transparent credit system with monthly allowances and affordable overages. Never get locked out mid-project.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(20,184,166,0.08)">🔐</div>
+          <div class="feature-title">Secure by Design</div>
+          <div class="feature-desc">JWT authentication, encrypted secrets vault, rate limiting, and Stripe-powered payments.</div>
         </div>
       </div>
     </div>
+  </section>
 
-    <script src="https://unpkg.com/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
-    <script>
-      (function () {
-        const ua = navigator.userAgent;
-        const loadingEl = document.getElementById("loading");
-        const contentEl = document.getElementById("content");
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="section-label">PRICING</div>
+      <h2 class="section-title">Simple, transparent pricing</h2>
+      <p class="section-sub">Start free. Upgrade when you're ready. Never lose access mid-project.</p>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="price-name">Free</div>
+          <div class="price-desc">Perfect for trying things out</div>
+          <div class="price-amount">$0</div>
+          <div class="price-per">forever</div>
+          <div class="credits-label">🎫 10 credits / day</div>
+          <ul class="price-features">
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>2 agents (Builder + Writer)</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Basic markdown rendering</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Conversation history</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>4K token responses</li>
+          </ul>
+          <div class="overage-text">No overages — resets daily</div>
+          <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-free">Get Started Free</a>
+        </div>
+        <div class="price-card featured">
+          <div class="price-popular">MOST POPULAR</div>
+          <div class="price-name">Pro</div>
+          <div class="price-desc">For creators who ship consistently</div>
+          <div class="price-amount">$19</div>
+          <div class="price-per">/month</div>
+          <div class="credits-label">🎫 500 credits / month</div>
+          <ul class="price-features">
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>All 15 AI agents</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Live HTML previews</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>16K token responses</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Command Center access</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Priority response speed</li>
+          </ul>
+          <div class="overage-text">Overage: $0.05 per credit beyond 500</div>
+          <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-pro">Start Pro — $19/mo</a>
+        </div>
+        <div class="price-card">
+          <div class="price-name">Elite</div>
+          <div class="price-desc">For teams and power users</div>
+          <div class="price-amount">$49</div>
+          <div class="price-per">/month</div>
+          <div class="credits-label">🎫 2,000 credits / month</div>
+          <ul class="price-features">
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Everything in Pro</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Fastest response speed</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Priority support</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Lowest overage rates</li>
+            <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Data export & API access</li>
+          </ul>
+          <div class="overage-text">Overage: $0.03 per credit beyond 2,000</div>
+          <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-elite">Start Elite — $49/mo</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        const isAndroid = /Android/i.test(ua);
-        const isIOS =
-          /iPhone|iPad|iPod/i.test(ua) ||
-          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  <section class="cta">
+    <div class="container">
+      <h2>Start building your dreams today.</h2>
+      <p>15 AI agents. Zero learning curve. Free to start.</p>
+      <a href="EXPO_WEB_URL_PLACEHOLDER" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Launch App
+      </a>
+    </div>
+  </section>
 
-        const deepLink = "exps://EXPS_URL_PLACEHOLDER";
+  <footer>
+    <div class="container">
+      <div class="footer-brand">🌾 Field of Dreams</div>
+      <div class="footer-copy">© 2026 Field of Dreams. All rights reserved.</div>
+    </div>
+  </footer>
 
-        // Adjust store buttons based on platform
-        const appStoreBtn = document.getElementById("app-store-btn");
-        const playStoreBtn = document.getElementById("play-store-btn");
-        const storeButtonsContainer = document.getElementById("store-buttons");
-
-        if (isIOS) {
-          playStoreBtn.className = "store-link";
-          storeButtonsContainer.appendChild(playStoreBtn);
-        } else if (isAndroid) {
-          appStoreBtn.className = "store-link";
-          storeButtonsContainer.insertBefore(playStoreBtn, appStoreBtn);
-        }
-
-        const qrCode = new QRCodeStyling({
-          width: 400,
-          height: 400,
-          data: deepLink,
-          dotsOptions: {
-            color: "#333333",
-            type: "rounded",
-          },
-          backgroundOptions: {
-            color: "#ffffff",
-          },
-          cornersSquareOptions: {
-            type: "extra-rounded",
-          },
-          cornersDotOptions: {
-            type: "dot",
-          },
-          qrOptions: {
-            errorCorrectionLevel: "H",
-          },
-        });
-
-        qrCode.append(document.getElementById("qr-code"));
-
-        if (isAndroid || isIOS) {
-          loadingEl.style.display = "block";
-          contentEl.style.display = "none";
-          window.location.href = deepLink;
-          setTimeout(function () {
-            loadingEl.style.display = "none";
-            contentEl.style.display = "block";
-          }, 500);
-        }
-      })();
-    </script>
-  </body>
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.style.animationPlayState = 'running'; observer.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.feature-card, .agent-card, .price-card').forEach(el => {
+      el.style.opacity = '0';
+      el.style.animation = 'fadeUp 0.5s ease forwards';
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+  </script>
+</body>
 </html>

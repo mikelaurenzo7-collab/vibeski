@@ -24,13 +24,23 @@ export default function BillingScreen() {
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
-  const usagePercent = status.dailyGenerationsLimit === -1
+  const isPaid = status.tier !== 'free';
+
+  const dailyPercent = status.dailyGenerationsLimit === -1
     ? 0
     : Math.min((status.dailyGenerationsUsed / status.dailyGenerationsLimit) * 100, 100);
 
-  const usageLabel = status.dailyGenerationsLimit === -1
+  const monthlyPercent = status.monthlyCreditsLimit > 0
+    ? Math.min((status.monthlyCreditsUsed / status.monthlyCreditsLimit) * 100, 100)
+    : 0;
+
+  const dailyLabel = status.dailyGenerationsLimit === -1
     ? `${status.dailyGenerationsUsed} used today`
     : `${status.dailyGenerationsUsed} / ${status.dailyGenerationsLimit} today`;
+
+  const monthlyLabel = status.monthlyCreditsLimit > 0
+    ? `${status.monthlyCreditsUsed} / ${status.monthlyCreditsLimit} credits`
+    : `${status.dailyGenerationsUsed} / 10 daily credits`;
 
   const handleBack = () => {
     if (Platform.OS !== 'web') {
@@ -118,21 +128,82 @@ export default function BillingScreen() {
         </View>
 
         <View style={styles.usageCard}>
-          <Text style={styles.sectionTitle}>Daily Usage</Text>
-          <View style={styles.usageBar}>
-            <View style={[
-              styles.usageFill,
-              {
-                width: `${status.dailyGenerationsLimit === -1 ? 5 : usagePercent}%` as any,
-                backgroundColor: usagePercent >= 90 ? Colors.error : Colors.accent,
-              },
-            ]} />
-          </View>
-          <Text style={styles.usageLabel}>{usageLabel}</Text>
-          {status.dailyGenerationsLimit === -1 && (
-            <Text style={styles.unlimitedText}>Unlimited generations</Text>
+          <Text style={styles.sectionTitle}>Credit Usage</Text>
+
+          {isPaid ? (
+            <>
+              <Text style={styles.usageSubtitle}>Monthly Credits</Text>
+              <View style={styles.usageBar}>
+                <View style={[
+                  styles.usageFill,
+                  {
+                    width: `${Math.max(monthlyPercent, 2)}%` as any,
+                    backgroundColor: monthlyPercent >= 100 ? Colors.error : monthlyPercent >= 80 ? Colors.accent : Colors.success,
+                  },
+                ]} />
+              </View>
+              <Text style={styles.usageLabel}>{monthlyLabel}</Text>
+
+              {status.billingCycleStart && status.billingCycleEnd && (
+                <Text style={styles.cycleText}>
+                  Cycle: {status.billingCycleStart} — {status.billingCycleEnd}
+                </Text>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.usageSubtitle}>Daily Credits</Text>
+              <View style={styles.usageBar}>
+                <View style={[
+                  styles.usageFill,
+                  {
+                    width: `${Math.max(dailyPercent, 2)}%` as any,
+                    backgroundColor: dailyPercent >= 90 ? Colors.error : dailyPercent >= 70 ? Colors.accent : Colors.success,
+                  },
+                ]} />
+              </View>
+              <Text style={styles.usageLabel}>{dailyLabel}</Text>
+              <Text style={styles.cycleText}>Resets daily at midnight UTC</Text>
+            </>
           )}
         </View>
+
+        {isPaid && (
+          <View style={styles.overageCard}>
+            <View style={styles.overageHeader}>
+              <Feather name="trending-up" size={16} color={status.overageCredits > 0 ? Colors.accent : Colors.warmGrayLight} />
+              <Text style={styles.sectionTitle}>Overage</Text>
+            </View>
+            {status.overageCredits > 0 ? (
+              <>
+                <View style={styles.overageStatRow}>
+                  <View style={styles.overageStat}>
+                    <Text style={styles.overageStatValue}>{status.overageCredits}</Text>
+                    <Text style={styles.overageStatLabel}>Extra Credits</Text>
+                  </View>
+                  <View style={styles.overageStatDivider} />
+                  <View style={styles.overageStat}>
+                    <Text style={styles.overageStatValue}>${(status.overageCost / 100).toFixed(2)}</Text>
+                    <Text style={styles.overageStatLabel}>Overage Cost</Text>
+                  </View>
+                  <View style={styles.overageStatDivider} />
+                  <View style={styles.overageStat}>
+                    <Text style={styles.overageStatValue}>${(status.overageRate / 100).toFixed(2)}</Text>
+                    <Text style={styles.overageStatLabel}>Per Credit</Text>
+                  </View>
+                </View>
+                <Text style={styles.overageNote}>
+                  Overage charges are applied at the end of your billing cycle.
+                </Text>
+              </>
+            ) : (
+              <View style={styles.noOverageBox}>
+                <Feather name="check-circle" size={14} color={Colors.success} />
+                <Text style={styles.noOverageText}>No overage this cycle</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={styles.actionsCard}>
           {status.tier === 'free' ? (
@@ -141,7 +212,10 @@ export default function BillingScreen() {
               onPress={handleUpgrade}
             >
               <Feather name="zap" size={18} color={Colors.primary} />
-              <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+              <View style={styles.actionTextGroup}>
+                <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+                <Text style={styles.actionSubtext}>Get 500+ credits/month</Text>
+              </View>
               <Feather name="chevron-right" size={18} color={Colors.primary} />
             </Pressable>
           ) : (
@@ -272,28 +346,98 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     letterSpacing: -0.1,
   },
+  usageSubtitle: {
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.warmGray,
+    marginBottom: 8,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
   usageBar: {
-    height: 8,
+    height: 10,
     backgroundColor: Colors.creamDark,
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'hidden',
     marginBottom: 8,
   },
   usageFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
     minWidth: 4,
   },
   usageLabel: {
-    fontSize: 13,
-    fontFamily: 'DMSans_500Medium',
-    color: Colors.warmGray,
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.black,
   },
-  unlimitedText: {
+  cycleText: {
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
-    color: Colors.success,
+    color: Colors.warmGrayLight,
     marginTop: 4,
+  },
+  overageCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  overageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  overageStatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  overageStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  overageStatValue: {
+    fontSize: 20,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    letterSpacing: -0.3,
+  },
+  overageStatLabel: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGrayLight,
+    marginTop: 2,
+  },
+  overageStatDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: Colors.divider,
+  },
+  overageNote: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGrayLight,
+    marginTop: 12,
+    textAlign: 'center',
+    fontStyle: 'italic' as const,
+  },
+  noOverageBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(47,107,71,0.06)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  noOverageText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.success,
   },
   actionsCard: {
     backgroundColor: Colors.white,
@@ -321,11 +465,19 @@ const styles = StyleSheet.create({
     color: Colors.blackSoft,
     flex: 1,
   },
+  actionTextGroup: {
+    flex: 1,
+  },
   upgradeButtonText: {
     fontSize: 15,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.primary,
-    flex: 1,
+  },
+  actionSubtext: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    marginTop: 1,
   },
   actionDivider: {
     height: 1,

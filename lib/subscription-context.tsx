@@ -23,6 +23,13 @@ const DEFAULT_STATUS: SubscriptionStatus = {
   dailyGenerationsUsed: 0,
   dailyGenerationsLimit: 10,
   canGenerate: true,
+  monthlyCreditsUsed: 0,
+  monthlyCreditsLimit: 0,
+  overageCredits: 0,
+  overageRate: 0,
+  overageCost: 0,
+  billingCycleStart: '',
+  billingCycleEnd: '',
 };
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);

@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import type { SubscriptionTier, SubscriptionStatus } from '../shared/subscription';
+import { getCreditCost, getTierConfig } from '../shared/subscription';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -16,11 +17,29 @@ interface UsageRecord {
   date: string;
 }
 
+interface MonthlyUsageRecord {
+  creditsUsed: number;
+  overageCredits: number;
+  cycleStart: string;
+  cycleEnd: string;
+}
+
 const subscriptions = new Map<string, UserSubscription>();
 const usage = new Map<string, UsageRecord>();
+const monthlyUsage = new Map<string, MonthlyUsageRecord>();
 
 function todayKey(): string {
   return new Date().toISOString().split('T')[0];
+}
+
+function getCurrentCycle(): { start: string; end: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
 }
 
 function getUsage(deviceId: string): UsageRecord {
@@ -29,6 +48,20 @@ function getUsage(deviceId: string): UsageRecord {
   if (existing && existing.date === today) return existing;
   const record = { count: 0, date: today };
   usage.set(deviceId, record);
+  return record;
+}
+
+function getMonthlyUsage(deviceId: string): MonthlyUsageRecord {
+  const cycle = getCurrentCycle();
+  const existing = monthlyUsage.get(deviceId);
+  if (existing && existing.cycleStart === cycle.start) return existing;
+  const record: MonthlyUsageRecord = {
+    creditsUsed: 0,
+    overageCredits: 0,
+    cycleStart: cycle.start,
+    cycleEnd: cycle.end,
+  };
+  monthlyUsage.set(deviceId, record);
   return record;
 }
 
@@ -43,29 +76,57 @@ export function setSubscription(deviceId: string, sub: UserSubscription): void {
 export function getSubscriptionStatus(deviceId: string): SubscriptionStatus & { stripeCustomerId?: string } {
   const sub = getSubscription(deviceId);
   const usageRecord = getUsage(deviceId);
+  const monthly = getMonthlyUsage(deviceId);
+  const tierConfig = getTierConfig(sub.tier);
+  const cycle = getCurrentCycle();
 
-  const limits: Record<SubscriptionTier, number> = {
-    free: 10,
-    pro: 100,
-    elite: -1,
-  };
+  const dailyLimit = tierConfig.limits.dailyGenerations;
+  const monthlyLimit = tierConfig.limits.monthlyCredits;
+  const overageRate = tierConfig.limits.overageRate;
 
-  const limit = limits[sub.tier];
-  const canGenerate = limit === -1 || usageRecord.count < limit;
+  let canGenerate: boolean;
+  if (sub.tier === 'free') {
+    canGenerate = usageRecord.count < dailyLimit;
+  } else {
+    canGenerate = true;
+  }
+
+  const overageCredits = monthlyLimit > 0
+    ? Math.max(0, monthly.creditsUsed - monthlyLimit)
+    : 0;
+  const overageCost = overageCredits * overageRate;
 
   return {
     tier: sub.tier,
     dailyGenerationsUsed: usageRecord.count,
-    dailyGenerationsLimit: limit,
+    dailyGenerationsLimit: dailyLimit,
     canGenerate,
+    monthlyCreditsUsed: monthly.creditsUsed,
+    monthlyCreditsLimit: monthlyLimit,
+    overageCredits,
+    overageRate,
+    overageCost,
+    billingCycleStart: cycle.start,
+    billingCycleEnd: cycle.end,
     stripeCustomerId: sub.stripeCustomerId,
   };
 }
 
-export function incrementUsage(deviceId: string): void {
+export function incrementUsage(deviceId: string, agentId?: string): number {
   const record = getUsage(deviceId);
   record.count++;
   usage.set(deviceId, record);
+
+  const sub = getSubscription(deviceId);
+  if (sub.tier !== 'free') {
+    const creditCost = getCreditCost(agentId || 'builder');
+    const monthly = getMonthlyUsage(deviceId);
+    monthly.creditsUsed += creditCost;
+    monthlyUsage.set(deviceId, monthly);
+    return creditCost;
+  }
+
+  return 1;
 }
 
 export async function createCheckoutSession(
