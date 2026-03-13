@@ -8,6 +8,8 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { useAuth, getAuthToken } from '@/lib/auth-context';
 import { getApiUrl } from '@/lib/query-client';
+import { useChat } from '@/lib/chat-context';
 
 interface Project {
   id: number;
@@ -29,12 +32,25 @@ interface Project {
   updatedAt: string;
 }
 
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+}
+
 export default function ProjectsScreen() {
   const insets = useSafeAreaInsets();
   const { isLoggedIn } = useAuth();
+  const { createConversation } = useChat();
   const queryClient = useQueryClient();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'live' | 'draft'>('all');
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
@@ -50,18 +66,65 @@ export default function ProjectsScreen() {
     enabled: isLoggedIn,
   });
 
+  const { data: templates = [] } = useQuery<Template[]>({
+    queryKey: ['/api/project-templates'],
+    queryFn: async () => {
+      const res = await fetch(new URL('/api/project-templates', getApiUrl()).toString());
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (projectId: number) => {
       const token = getAuthToken();
-      await fetch(new URL(`/api/projects/${projectId}`, getApiUrl()).toString(), {
+      const res = await fetch(new URL(`/api/projects/${projectId}`, getApiUrl()).toString(), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error('Failed to delete project');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
     },
+    onError: () => {
+      Alert.alert('Error', 'Failed to delete project');
+    },
   });
+
+  const forkMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const token = getAuthToken();
+      const res = await fetch(new URL(`/api/projects/${projectId}/fork`, getApiUrl()).toString(), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Fork failed');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      router.push({ pathname: '/project/[id]', params: { id: String(data.id) } });
+    },
+    onError: () => {
+      Alert.alert('Error', 'Failed to fork project');
+    },
+  });
+
+  const handleUseTemplate = async (template: Template) => {
+    try {
+      const convo = await createConversation('builder');
+      router.push({
+        pathname: '/chat/[id]',
+        params: {
+          id: convo.id,
+          initialPrompt: `Build me a ${template.name}: ${template.description}. Make it production-quality with dark mode, responsive design, animations, and realistic sample data.`,
+        },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to start from template');
+    }
+  };
 
   const [menuId, setMenuId] = useState<number | null>(null);
 
@@ -87,6 +150,12 @@ export default function ProjectsScreen() {
     ]);
   };
 
+  const handleFork = (projectId: number) => {
+    setMenuId(null);
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    forkMutation.mutate(projectId);
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -104,6 +173,21 @@ export default function ProjectsScreen() {
     if (days < 7) return `${days}d ago`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const filteredProjects = projects.filter(p => {
+    if (activeFilter === 'live' && p.status !== 'deployed') return false;
+    if (activeFilter === 'draft' && p.status === 'deployed') return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const liveCount = projects.filter(p => p.status === 'deployed').length;
+  const draftCount = projects.filter(p => p.status !== 'deployed').length;
+
+  const templateCategories = [...new Set(templates.map(t => t.category))];
 
   const renderProject = ({ item }: { item: Project }) => {
     const isDeployed = item.status === 'deployed';
@@ -163,6 +247,11 @@ export default function ProjectsScreen() {
               <Text style={styles.actionText}>View</Text>
             </Pressable>
             <View style={styles.actionDivider} />
+            <Pressable onPress={() => handleFork(item.id)} style={styles.actionItem}>
+              <Feather name="copy" size={14} color={Colors.black} />
+              <Text style={styles.actionText}>Fork</Text>
+            </Pressable>
+            <View style={styles.actionDivider} />
             <Pressable onPress={() => handleDelete(item.id)} style={styles.actionItem}>
               <Feather name="trash-2" size={14} color={Colors.error} />
               <Text style={[styles.actionText, { color: Colors.error }]}>Delete</Text>
@@ -173,6 +262,28 @@ export default function ProjectsScreen() {
     );
   };
 
+  const renderTemplateCard = (template: Template) => (
+    <Pressable
+      key={template.id}
+      onPress={() => {
+        if (!isLoggedIn) {
+          router.push('/auth');
+          return;
+        }
+        handleUseTemplate(template);
+      }}
+      style={({ pressed }) => [styles.templateCard, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+    >
+      <Text style={styles.templateIcon}>{template.icon}</Text>
+      <Text style={styles.templateName} numberOfLines={1}>{template.name}</Text>
+      <Text style={styles.templateDesc} numberOfLines={2}>{template.description}</Text>
+      <View style={styles.templateAction}>
+        <Feather name="plus" size={12} color={Colors.accent} />
+        <Text style={styles.templateActionText}>Use</Text>
+      </View>
+    </Pressable>
+  );
+
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIcon}>
@@ -181,15 +292,15 @@ export default function ProjectsScreen() {
       <Text style={styles.emptyTitle}>No projects yet</Text>
       <Text style={styles.emptySubtitle}>
         {isLoggedIn
-          ? 'Chat with the Builder agent to generate your first app'
+          ? 'Start from a template below or chat with Builder to create your first app'
           : 'Sign in to save and manage your projects'}
       </Text>
       <Pressable
-        onPress={() => router.push('/')}
+        onPress={() => isLoggedIn ? setShowTemplates(true) : router.push('/auth')}
         style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
       >
         <Text style={styles.emptyBtnText}>
-          {isLoggedIn ? 'Start Building' : 'Go Home'}
+          {isLoggedIn ? 'Browse Templates' : 'Sign In'}
         </Text>
       </Pressable>
     </View>
@@ -203,22 +314,88 @@ export default function ProjectsScreen() {
           <Feather name="chevron-left" size={22} color="rgba(255,255,255,0.7)" />
         </Pressable>
         <Text style={styles.headerTitle}>My Projects</Text>
-        <View style={styles.headerRight}>
-          <Text style={styles.projectCount}>{projects.length}</Text>
-        </View>
+        <Pressable
+          onPress={() => setShowTemplates(!showTemplates)}
+          hitSlop={12}
+          style={({ pressed }) => [styles.templateToggle, pressed && { opacity: 0.6 }]}
+        >
+          <Feather name={showTemplates ? 'x' : 'plus-square'} size={20} color={Colors.accent} />
+        </Pressable>
       </View>
 
-      {isLoading ? (
+      {projects.length > 0 && !showTemplates && (
+        <View style={styles.searchBar}>
+          <Feather name="search" size={16} color={Colors.warmGrayLight} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search projects..."
+            placeholderTextColor={Colors.warmGrayLight}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+              <Feather name="x" size={16} color={Colors.warmGray} />
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+
+      {projects.length > 0 && !showTemplates && (
+        <View style={styles.filterBar}>
+          {([
+            { key: 'all' as const, label: `All (${projects.length})` },
+            { key: 'live' as const, label: `Live (${liveCount})` },
+            { key: 'draft' as const, label: `Draft (${draftCount})` },
+          ]).map(f => (
+            <Pressable
+              key={f.key}
+              onPress={() => setActiveFilter(f.key)}
+              style={[styles.filterChip, activeFilter === f.key && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterChipText, activeFilter === f.key && styles.filterChipTextActive]}>
+                {f.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
+      {showTemplates ? (
+        <ScrollView style={styles.templatesScroll} contentContainerStyle={styles.templatesContent}>
+          <View style={styles.templatesBanner}>
+            <Feather name="zap" size={20} color={Colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.templatesBannerTitle}>Start from a Template</Text>
+              <Text style={styles.templatesBannerSub}>Pick a starter and Builder will generate a production-quality app</Text>
+            </View>
+          </View>
+          {templateCategories.map(category => (
+            <View key={category} style={styles.templateCategory}>
+              <Text style={styles.templateCategoryTitle}>{category}</Text>
+              <View style={styles.templateGrid}>
+                {templates.filter(t => t.category === category).map(renderTemplateCard)}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      ) : isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.accent} />
         </View>
       ) : (
         <FlatList
-          data={projects}
+          data={filteredProjects}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderProject}
-          ListEmptyComponent={renderEmpty}
-          contentContainerStyle={[styles.listContent, projects.length === 0 && styles.listEmpty]}
+          ListEmptyComponent={projects.length === 0 ? renderEmpty : (
+            <View style={[styles.emptyContainer, { paddingTop: 40 }]}>
+              <Feather name="search" size={24} color={Colors.warmGrayLight} />
+              <Text style={styles.emptySubtitle}>No projects match your search</Text>
+            </View>
+          )}
+          contentContainerStyle={[styles.listContent, filteredProjects.length === 0 && styles.listEmpty]}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -250,17 +427,62 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: 'DMSans_700Bold',
     color: Colors.white,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     letterSpacing: -0.2,
   },
-  headerRight: {
+  templateToggle: {
     width: 36,
-    alignItems: 'flex-end',
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  projectCount: {
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
     fontSize: 14,
-    fontFamily: 'DMSans_600SemiBold',
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.black,
+    padding: 0,
+  },
+  filterBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.accentSubtle,
+    borderColor: Colors.accent,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.warmGray,
+  },
+  filterChipTextActive: {
     color: Colors.accent,
+    fontFamily: 'DMSans_600SemiBold',
   },
   loadingContainer: {
     flex: 1,
@@ -379,14 +601,16 @@ const styles = StyleSheet.create({
     color: Colors.warmGrayLight,
   },
   actionMenu: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 52,
     right: 16,
     backgroundColor: Colors.white,
     borderRadius: 12,
     paddingVertical: 4,
-    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
-    elevation: 8,
+    ...Platform.select({
+      web: { boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)' },
+      default: { elevation: 8 },
+    }),
     borderWidth: 1,
     borderColor: Colors.divider,
     zIndex: 10,
@@ -408,6 +632,93 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.divider,
     marginHorizontal: 10,
+  },
+  templatesScroll: {
+    flex: 1,
+  },
+  templatesContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  templatesBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.accentSubtle,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(201,162,78,0.2)',
+  },
+  templatesBannerTitle: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    marginBottom: 2,
+  },
+  templatesBannerSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 17,
+  },
+  templateCategory: {
+    marginBottom: 20,
+  },
+  templateCategoryTitle: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.blackSoft,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+    marginBottom: 10,
+  },
+  templateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap' as const,
+    gap: 10,
+  },
+  templateCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    width: Platform.OS === 'web' ? 'calc(50% - 5px)' as any : '48%' as any,
+    minWidth: 150,
+  },
+  templateIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  templateName: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    marginBottom: 4,
+  },
+  templateDesc: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  templateAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start' as const,
+    backgroundColor: Colors.accentSubtle,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  templateActionText: {
+    fontSize: 11,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.accent,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -432,7 +743,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     lineHeight: 21,
     marginBottom: 20,
   },
