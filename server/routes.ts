@@ -378,24 +378,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Multi-model routing: Grok for creative, Raptor for analytical/code
       const providerType = getProviderForAgent(agentId || 'builder');
-      const provider = providerType === 'grok' ? grokProvider : raptorProvider;
+      const primaryProvider = providerType === 'grok' ? grokProvider : raptorProvider;
+      const fallbackProvider = providerType === 'grok' ? raptorProvider : null;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("X-Accel-Buffering", "no");
       res.flushHeaders();
 
-      try {
+      let aborted = false;
+      req.on("close", () => { aborted = true; });
+
+      const streamFromProvider = async (provider: typeof primaryProvider) => {
         for await (const chunk of provider.sendMessage(sanitized, systemPrompt)) {
+          if (aborted) break;
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
+      };
+
+      try {
+        await streamFromProvider(primaryProvider);
       } catch (error) {
-        console.error("Provider error:", error);
-        res.write(`data: ${JSON.stringify({ error: "Model error" })}\n\n`);
+        console.error(`${primaryProvider.name} error${fallbackProvider ? ', falling back' : ''}:`, error);
+        if (!aborted && fallbackProvider) {
+          try {
+            await streamFromProvider(fallbackProvider);
+          } catch (fallbackError) {
+            console.error("Fallback error:", fallbackError);
+            res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
+          }
+        } else if (!aborted) {
+          res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
+        }
       }
 
-      res.write("data: [DONE]\n\n");
-      res.end();
+      if (!aborted) {
+        res.write("data: [DONE]\n\n");
+        res.end();
+      }
     } catch (error) {
       console.error("Chat error:", error);
       if (res.headersSent) {

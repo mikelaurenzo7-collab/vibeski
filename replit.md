@@ -73,9 +73,10 @@ This dual-model approach is genuinely unique: no competitor uses model diversity
 - Each agent has its own color accent
 
 ## Environment Variables
-- `GROK_API_KEY` - xAI Grok API key
-- `CLAUDE_API_KEY` - Anthropic Claude API key
-- `AI_INTEGRATIONS_OPENAI_API_KEY` / `AI_INTEGRATIONS_OPENAI_BASE_URL` - Replit OpenAI (fallback)
+- `GROK_API_KEY` - xAI Grok API key (creative agents, with auto-fallback to Raptor)
+- `AI_INTEGRATIONS_OPENAI_API_KEY` / `AI_INTEGRATIONS_OPENAI_BASE_URL` - Raptor model (analytical agents + fallback)
+- `DATABASE_URL` - PostgreSQL connection string (auto-managed by Replit)
+- `JWT_SECRET` - JWT signing secret (required in production, dev fallback provided)
 
 ## Workflows
 - `Start Backend` - Express server (port 5000)
