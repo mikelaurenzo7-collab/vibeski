@@ -32,6 +32,7 @@ function RootLayoutNav() {
       <Stack.Screen name="pricing" />
       <Stack.Screen name="billing" />
       <Stack.Screen name="command-center" />
+      <Stack.Screen name="memory" />
       <Stack.Screen name="project/[id]" />
     </Stack>
   );

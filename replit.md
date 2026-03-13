@@ -1,189 +1,50 @@
 # FIELD OF DREAMS
 
 ## Overview
-FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo React Native. It features 15 specialized AI agents, powered by a multi-model AI architecture (Raptor primary, Gemini fallback), streaming responses in real-time with rich markdown rendering and live HTML previews for generated apps/websites.
+FIELD OF DREAMS is a premium AI agent platform delivered as a mobile application built with Expo React Native. It offers 15 specialized AI agents powered by a multi-model AI architecture (Raptor primary, Gemini fallback). The platform provides real-time streaming responses with rich markdown rendering and live HTML previews for generated applications and websites. The project aims to provide a comprehensive suite of AI tools for diverse tasks, from business strategy and content creation to coding and design, catering to a wide user base through a flexible subscription and credit system.
 
-## Architecture
-- **Frontend**: Expo Router (file-based routing), React Native
-- **Backend**: Express.js server on port 5000
-- **AI**: Multi-model: Raptor (gpt-4.1-mini) primary, Gemini (gemini-2.5-flash) fallback
-- **State**: AsyncStorage for conversation persistence, React Context for shared state
-- **Font**: DM Sans (Google Fonts)
-- **Rich Rendering**: Custom markdown parser, HTML preview via iframe/WebView
-- **Payments**: Stripe integration for subscription management
+## User Preferences
+I prefer detailed explanations.
+I want iterative development.
+I want to be asked before major changes are made.
+I like clean, readable code with comprehensive comments.
+I prefer a component-based architecture for UI development.
+I expect clear communication regarding progress and any potential roadblocks.
 
-## Subscription & Credit System
-- **Free**: 10 credits/day (resets daily), Builder & Writer agents only, 4K token limit
-- **Pro ($19/mo)**: 500 credits/month, all 15 agents, 16K tokens, HTML live previews, $0.05/credit overage
-- **Elite ($49/mo)**: 2,000 credits/month, all 15 agents, 16K tokens, priority support, $0.03/credit overage
-- Credit costs per agent: 1 credit (Builder, Writer, Converter, GitHub), 2 credits (Strategist, Code, Designer, Analyst, Branding, Thinker, Content), 3 credits (SEO Pro, Page Gen, Optimizer, Cloner)
-- Overages: paid users are never locked out; usage beyond plan limits is billed at per-credit overage rates at end of billing cycle
+## System Architecture
+The application is built with an Expo React Native frontend utilizing Expo Router for file-based routing. The backend is an Express.js server. The AI architecture employs a multi-model strategy, with Raptor (gpt-4.1-mini) as the primary model and Gemini (gemini-2.5-flash) as a fallback, ensuring robust AI capabilities. State management is handled by AsyncStorage for conversation persistence and React Context for shared application state.
 
-## Multi-Model Strategy
-- **Primary**: Raptor (gpt-4.1-mini via Replit AI Integrations) — fast, reliable, great for all agent types
-- **Fallback**: Gemini (gemini-2.5-flash via Google API) — automatic failover if Raptor is unavailable
-- Streaming is handled inline in routes.ts using dynamic imports for each provider
-- The `for await` pattern works correctly with direct SDK stream objects in Express handlers
+**UI/UX Decisions:**
+- **Color Scheme**: Deep forest green (#162E23) as primary, golden amber (#C9A24E) as accent, and warm cream (#FAF6EF) as background. Each agent has a distinct color accent.
+- **Typography**: DM Sans (Google Fonts) is used throughout the application.
+- **Design Principles**: Elite design standards are enforced for generated content, including glassmorphism, CSS custom properties, responsive layouts, entrance animations, and professional typography.
+- **Rendering**: Custom markdown parser and HTML preview via iframe/WebView for rich content display.
+- **Authentication**: A welcome screen for unauthenticated users, with an auth guard redirecting to `/auth` for protected screens, and a branded splash screen during auth state hydration.
 
-## Built-in Agents (15 total)
-### Core Agents
-- **Builder** (green) - Creates apps, sites & tools with live HTML previews [Free]
-- **Strategist** (purple) - Business plans, growth strategy, competitive analysis [Pro+]
-- **Writer** (orange) - Content creation, copywriting, storytelling [Free]
-- **Code** (blue) - Programming, debugging, system architecture [Pro+]
-- **Designer** (pink) - UI/UX, branding, visual design [Pro+]
-- **Analyst** (teal) - Research, data analysis, market insights [Pro+]
-### Tool Agents
-- **Branding** (fuchsia) - Brand identity kits, color palettes, typography, style guides [Pro+]
-- **Thinker** (indigo) - Design thinking, creative problem solving, user personas [Pro+]
-- **SEO Pro** (emerald) - SEO auditing, keyword strategy, technical SEO [Pro+]
-- **Page Gen** (green) - Programmatic SEO, scalable page generation [Pro+]
-- **Content** (amber) - Social media content, newsletters, ad copy at scale [Pro+]
-- **Converter** (slate) - Data format conversion (JSON, CSV, XML, SQL, etc.) [Pro+]
-- **GitHub** (dark) - Open-source library discovery, stack comparison [Pro+]
-- **Optimizer** (cyan) - Page speed, meta tags, CRO, App Store optimization [Pro+]
-- **Cloner** (violet) - Website recreation, design analysis, pixel-perfect rebuilds [Pro+]
+**Technical Implementations & Features:**
+- **Agent System**: 15 built-in AI agents categorized as "Core Agents" (Builder, Strategist, Writer, Code, Designer, Analyst) and "Tool Agents" (Branding, Thinker, SEO Pro, Page Gen, Content, Converter, GitHub, Optimizer, Cloner), each with specific functionalities.
+- **Live Previews**: Builder, Code, and Designer agents offer live HTML previews for generated web applications, with a dedicated full-screen preview mode including device frames and source view.
+- **Project Management**: Comprehensive project builder system allowing multi-file generation, saving to a database, inline file editing, version history, and one-click deployment to public URLs (`/live/:slug/`). Projects support data persistence via a per-project data API.
+- **Conversation Management**: Features include creation, viewing, and deletion of conversations, with agent tagging and an intelligent memory system that extracts user preferences, tech stack, and business context for personalized responses. Conversation summarization is implemented for longer dialogues.
+- **Subscription & Access Control**: A tiered subscription model (Free, Pro, Elite) is integrated with Stripe, managing access to agents, token limits, and features like HTML live previews and priority support. Usage tracking and upgrade prompts are part of the system.
+- **Command Center**: An admin dashboard with sections for Overview, Analytics, Secrets, Integrations, Settings, Data, and Security.
+- **Security**: Implemented with rate limiting on auth and AI endpoints, JWT authentication for protected API routes, input validation using Zod, and database transaction safety.
 
-## Auth Gate & Access Control
-- **Welcome Screen**: Unauthenticated users see a branded landing page with feature highlights, agent showcase, pricing link, and sign-in/sign-up CTAs
-- **Auth Guard**: All protected screens (chat, projects, templates, billing, command center, profile, project detail) redirect to `/auth` if not logged in, with proper `isLoading` checks to prevent flash-redirects during auth hydration
-- **Public Screens**: Welcome page (index when logged out), pricing, and auth screen are accessible without login
-- **Loading State**: Shows branded splash (wheat emoji + title) while auth state hydrates from AsyncStorage
+## External Dependencies
+- **Stripe**: For subscription management, checkout, billing portal, and webhook handling.
+- **@google/generative-ai**: Google Gemini SDK for fallback AI model.
+- **@replit/ai-integrations**: Primary AI model (Raptor).
+- **PostgreSQL**: Database managed via Replit, accessed using Drizzle ORM.
+- **react-native-webview**: For rendering native HTML previews within the application.
+- **express-rate-limit**: Middleware for rate limiting API requests.
+- **react-native-reanimated**: For animations within the React Native application.
+- **react-native-keyboard-controller**: For managing keyboard interactions in React Native.
+- **@expo/vector-icons (Feather)**: Icon set used across the UI.
 
-## Key Features
-- **Agent Selection**: Home screen shows agents as cards; tap to start a conversation with that agent
-- **Live HTML Preview**: Builder/Code/Designer agents can generate complete web apps rendered in-chat
-- **Full-Screen App Preview**: Dedicated preview screen with device frame options (phone, tablet, desktop), landscape rotation, View Source toggle, and share button
-- **Iterative Editing**: Edit button on preview navigates back to chat with context preserved for follow-up modifications
-- **Template Gallery**: Curated prompt templates organized by category (Landing Pages, Dashboards, Portfolios, Tools, Games, Storefronts) on a dedicated screen
-- **Elite Design Standards**: System prompts enforce glassmorphism, CSS custom properties, Google Fonts, responsive layouts, entrance animations, and professional typography in every generated app
-- **Markdown Rendering**: Headers, bold, inline code, bullet points, numbered lists, blockquotes
-- **Code Blocks**: Dark-themed with language labels and copy buttons
-- **Streaming Responses**: Real-time SSE streaming with animated typing indicator
-- **Conversation Management**: Create, view, delete; conversations tagged with their agent
-- **Command Center**: Full admin dashboard with 7 sections — Overview (stats), Analytics (agent usage, activity), Secrets (API key storage), Integrations (webhook/Slack/GitHub/Notion/Zapier/GA), Settings (preferences, generation config), Data (JSON/text export), Security (password, sessions, privacy)
-- **Subscription Management**: Stripe-powered tiers with usage tracking and upgrade prompts
-- **Usage Tracking**: Daily generation counts, usage pills in header, billing screen
-- **Upgrade Modals**: Natural prompts when hitting limits or accessing locked agents
-- **Project Builder System**: Multi-file project generation from Builder agent, auto-saved to DB with file editor, live preview, and one-click deployment to `/live/:slug/`
-- **Multi-File Generation**: Builder generates separate index.html, style.css, script.js files using ===FILE: path=== delimiters; parsed by `lib/file-parser.ts`
-- **Live Deployment**: Deploy projects to public URLs at `/live/:slug/`, served directly from database; per-project data API at `/live/:slug/api/data/:collection` for CRUD persistence
-- **Project Detail Screen**: `app/project/[id].tsx` with 3 tabs (Preview, Files, History), inline code editing with save, version history with restore, actions dropdown (Fork, Export, Open Live), deploy/undeploy, live URL banner
-- **Project Version History**: Auto-versioned on create and every file update. Versions table stores file snapshots with version numbers. Restore creates a safety snapshot before overwriting.
-- **Project Forking**: One-click fork duplicates project + all files into a new project
-- **ZIP Export**: Download all project files as a text bundle (web only)
-- **Starter Templates**: 12 categorized templates accessible from Projects screen. Selecting a template creates a Builder conversation with a rich prompt to generate a production-quality app.
-- **Enhanced Builder AI**: SHARED_BUILD_RULES upgraded with CDN libraries (Chart.js, GSAP, Three.js, Tailwind, Lucide, SortableJS), multi-page hash routing, dark mode patterns, localStorage helpers, advanced design patterns
-- **Project Search & Filtering**: Search projects by name/description, filter by status (All/Live/Draft) in the projects list
-- **Persistent Memory System**: Auto-extracts user preferences, tech stack, business context, style preferences, project goals, and corrections from chat messages. Stored in `userMemories` table and injected into system prompts for personalized responses across conversations.
-- **Conversation Summarization**: When conversations exceed 20 messages, older messages are compressed into summaries stored in `conversationSummaries` table. Recent messages (last 16) are kept in full, with summaries providing context for earlier discussion.
-- **Project Context Injection**: Builder conversations automatically include existing project file structure and content in the system prompt, enabling iterative editing with full awareness of current project state.
-
-## Key Files
-- `app/index.tsx` - Home screen with template gallery banner, agents grid, conversation list, usage pill, and personalized content
-- `app/chat/[id].tsx` - Chat screen with agent-specific UI, streaming, preview navigation, and limit handling
-- `app/auth.tsx` - Sign in / Sign up screen
-- `app/projects.tsx` - My Projects dashboard with CRUD actions
-- `app/profile.tsx` - Profile/settings screen with account info
-- `app/preview.tsx` - Full-screen app preview with device frames, rotation, source view, share
-- `app/templates.tsx` - Template gallery screen with categories and curated prompt starters
-- `app/pricing.tsx` - Pricing screen with tier cards and Stripe checkout
-- `app/billing.tsx` - Billing & usage screen with plan details and portal access
-- `app/command-center.tsx` - Command Center with 7 tabbed sections (Overview, Analytics, Secrets, Integrations, Settings, Data, Security)
-- `app/_layout.tsx` - Root layout with AuthProvider, ChatProvider, SubscriptionProvider, QueryClient
-- `constants/agents.ts` - Agent definitions (prompts, colors, icons, suggestions)
-- `constants/templates.ts` - Template category and template definitions (6 categories, 24 templates)
-- `constants/colors.ts` - Theme colors
-- `shared/schema.ts` - Drizzle schema (users, conversations, messages, projects, projectFiles, projectData, userMemories, conversationSummaries)
-- `server/memory.ts` - Memory engine: context assembly, memory extraction, conversation summarization, project context injection
-- `shared/subscription.ts` - Subscription tier config, types, and shared logic
-- `lib/auth-context.tsx` - Authentication state management (JWT, user, login/signup/logout)
-- `lib/chat-context.tsx` - Chat state management (dual mode: local for guests, server-backed for logged-in; conversations include agentId)
-- `lib/subscription-context.tsx` - Subscription state (device ID, status, checkout, portal)
-- `lib/stream-chat.ts` - SSE streaming client (passes agent system prompt, device ID)
-- `lib/query-client.ts` - React Query client and API helpers
-- `server/routes.ts` - Express API with /api/chat (Raptor+Gemini inline streaming), auth, conversations, subscription endpoints
-- `server/auth.ts` - JWT middleware, password hashing utilities
-- `server/models.ts` - Provider type definitions (minimal, streaming is inline in routes)
-- `server/subscription.ts` - Server-side subscription & usage management, Stripe integration
-- `server/storage.ts` - Database storage layer (Drizzle ORM)
-- `server/db.ts` - Database connection (PostgreSQL pool)
-- `components/MessageBubble.tsx` - Rich message bubbles with markdown + HTML preview + preview navigation
-- `components/HtmlPreview.tsx` - Live HTML preview with browser-style dots, View Source toggle, fullscreen button
-- `components/AgentCard.tsx` - Agent selection card with lock indicator for premium agents
-- `components/ConversationItem.tsx` - Conversation list item with agent badge
-- `components/UpgradeModal.tsx` - Upgrade prompt modal for limits and locked agents
-- `components/ChatInput.tsx` - Message input with send button
-- `components/TypingIndicator.tsx` - Animated typing dots
-
-## API Endpoints
-- `POST /api/chat` - Chat with streaming (enforces tier limits and agent access)
-- `GET /api/subscription/status` - Get current subscription and usage status
-- `POST /api/subscription/checkout` - Create Stripe checkout session
-- `POST /api/subscription/portal` - Create Stripe billing portal session
-- `POST /api/subscription/webhook` - Stripe webhook handler
-- `GET /api/memory` - Get user memory stats (categories, counts, recent items)
-- `GET /api/memory/all` - Get all user memories
-- `POST /api/memory` - Add a manual memory entry
-- `DELETE /api/memory/:id` - Delete a specific memory
-- `GET /api/projects` - List user's projects
-- `POST /api/projects` - Create project with optional files
-- `GET /api/projects/:id` - Get project with files
-- `PUT /api/projects/:id` - Update project name/description/files
-- `DELETE /api/projects/:id` - Delete project
-- `POST /api/projects/:id/deploy` - Deploy project (generates slug, sets status=deployed)
-- `POST /api/projects/:id/undeploy` - Take project offline
-- `GET /api/projects/:id/versions` - List version history
-- `POST /api/projects/:id/versions` - Create manual version snapshot
-- `POST /api/projects/:id/versions/:versionId/restore` - Restore to a previous version
-- `POST /api/projects/:id/fork` - Fork project (duplicates with files)
-- `GET /api/projects/:id/export` - Export project files
-- `POST /api/projects/:id/save-files` - Save edited files (auto-creates version)
-- `GET /api/project-templates` - List starter templates
-- `POST /api/project-templates/:id/use` - Create project from template
-- `GET /api/projects/by-conversation/:conversationId` - Find project linked to a conversation
-- `GET /live/:slug/` - Serve deployed project index.html
-- `GET /live/:slug/:fileName` - Serve deployed project static files (CSS, JS, etc.)
-- `GET/POST/DELETE /live/:slug/api/data/:collection` - Per-project data API for CRUD persistence
-
-## Color Theme
-- Primary: #162E23 (deep forest green)
-- Accent: #C9A24E (golden amber)
-- Background: #FAF6EF (warm cream)
-- Each agent has its own color accent
-
-## Environment Variables
-- `AI_INTEGRATIONS_OPENAI_API_KEY` / `AI_INTEGRATIONS_OPENAI_BASE_URL` - Raptor model (primary, via Replit AI Integrations)
-- `GOOGLE_API_KEY` - Google Gemini API key (fallback)
-- `DATABASE_URL` - PostgreSQL connection string (auto-managed by Replit)
-- `JWT_SECRET` - JWT signing secret (required in production, dev fallback provided)
-- `SESSION_SECRET` - Session management
-- `STRIPE_SECRET_KEY` - Stripe API key (required for payment features)
-- `STRIPE_PRO_PRICE_ID` - Stripe price ID for Pro tier
-- `STRIPE_ELITE_PRICE_ID` - Stripe price ID for Elite tier
-- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
-
-## Workflows
-- `Start Backend` - Express server (port 5000)
-- `Start Frontend` - Expo dev server (port 8081)
-
-## Technical Notes
-- SSE streaming in Express: Uses inline `for await` directly on OpenAI/Gemini SDK stream objects. Wrapping streams in separate async generator classes causes buffering issues in Express POST handlers — keep streaming logic inline.
-- CORS: Allows `Content-Type`, `Authorization`, and `x-device-id` headers
-
-## Security & Hardening
-- **Rate Limiting**: `express-rate-limit` on auth endpoints (20 req/15min) and AI endpoints (30 req/min)
-- **Auth Required**: `/api/chat`, `/api/generate-image`, `/api/understand-image` all require JWT authentication
-- **JWT Error Logging**: Auth middleware logs JWT verification failures for debugging
-- **Input Validation**: Zod schemas validate conversation create/update payloads
-- **Transaction Safety**: `saveMessages` uses a database transaction to prevent data loss on partial failure
-- **Auth in Streaming**: `lib/stream-chat.ts` sends the auth token with streaming chat requests
-
-## Dependencies (Notable)
-- stripe - Stripe payment SDK
-- @google/generative-ai - Google Gemini SDK
-- express-rate-limit - Rate limiting middleware
-- react-native-webview - For native HTML previews
-- react-native-reanimated - Animations
-- react-native-keyboard-controller - Keyboard handling
-- @expo/vector-icons (Feather) - Icon set
+## Competitive Intelligence Features
+- **Price Comparison Calculator**: Interactive comparison table on pricing screen and landing page showing real-world costs of Replit Agent, Bolt.new, Lovable, Cursor AI, and ChatGPT Pro vs Field of Dreams.
+- **Annual Pricing Toggle**: Monthly/Annual billing toggle on both pricing screen and landing page. Annual saves 20% (Pro: $15/mo billed $182/yr, Elite: $39/mo billed $470/yr). `shared/subscription.ts` includes `annualPrice`, `annualPriceLabel`, `annualMonthly` fields.
+- **Memory & Business Profile**: User-editable memory management screen (`app/memory.tsx`) with two tabs — Memories (grouped by category with delete) and Business Profile (structured fields: company, industry, audience, brand voice, tech stack, competitors, website, goals). API routes: `GET/PUT /api/business-profile` in `server/routes.ts`. Business profile is injected into all agent system prompts via `getBusinessProfileBlock()` in `server/memory.ts` with prompt-injection sanitization.
+- **Agent-to-Agent Handoff**: After AI responses, contextual "Continue with..." chips suggest related agents (`components/AgentHandoff.tsx`). Each agent in `constants/agents.ts` has a `handoffs` array mapping to relevant follow-up agents with labels and descriptions.
+- **Landing Page Market Positioning**: Hero copy emphasizes "15 AI agents for less than one ChatGPT subscription." Competitor comparison table, transparency pledge, trust signals (security, Stripe, AI memory, dual models, cross-platform), and mobile-responsive layouts.
+- **Cost Transparency Pledge**: "No surprise bills. Ever." messaging on pricing screen and landing page with guarantee boxes explaining credit-based billing.

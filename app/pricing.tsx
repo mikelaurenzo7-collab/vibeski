@@ -37,6 +37,50 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   'website-cloner': 'Cloner',
 };
 
+const COMPETITORS = [
+  { name: 'Replit Agent', monthly: '$25–$100+', realCost: '$75–$250', agents: '1 general', note: 'Unpredictable overages' },
+  { name: 'Bolt.new', monthly: '$20–$200', realCost: '$50–$300', agents: '1 general', note: 'Token burn surprises' },
+  { name: 'Lovable', monthly: '$20–$100', realCost: '$40–$200', agents: '1 general', note: 'Limited free tier' },
+  { name: 'Cursor AI', monthly: '$20–$40', realCost: '$40–$150', agents: '1 code-only', note: 'Desktop only' },
+  { name: 'ChatGPT Pro', monthly: '$20–$200', realCost: '$20–$200', agents: 'GPT Store (user-made)', note: 'No app building' },
+];
+
+function PriceComparisonTable() {
+  return (
+    <View style={styles.compTable}>
+      <View style={styles.compHeader}>
+        <Feather name="bar-chart-2" size={16} color={Colors.accent} />
+        <Text style={styles.compTitle}>Real Cost Comparison</Text>
+      </View>
+      <Text style={styles.compSubtitle}>What users actually pay monthly, based on real-world usage</Text>
+
+      {COMPETITORS.map((comp, i) => (
+        <View key={i} style={styles.compRow}>
+          <View style={styles.compLeft}>
+            <Text style={styles.compName}>{comp.name}</Text>
+            <Text style={styles.compNote}>{comp.note}</Text>
+          </View>
+          <View style={styles.compRight}>
+            <Text style={styles.compCost}>{comp.realCost}</Text>
+            <Text style={styles.compAgents}>{comp.agents}</Text>
+          </View>
+        </View>
+      ))}
+
+      <View style={[styles.compRow, styles.compRowHighlight]}>
+        <View style={styles.compLeft}>
+          <Text style={[styles.compName, { color: Colors.accent }]}>Field of Dreams</Text>
+          <Text style={[styles.compNote, { color: 'rgba(255,255,255,0.5)' }]}>No surprise bills. Ever.</Text>
+        </View>
+        <View style={styles.compRight}>
+          <Text style={[styles.compCost, { color: Colors.accent }]}>$19–$49</Text>
+          <Text style={[styles.compAgents, { color: 'rgba(255,255,255,0.6)' }]}>15 specialists</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function CreditCostTable() {
   const entries = Object.entries(CREDIT_COSTS);
   const basic = entries.filter(([, c]) => c === 1);
@@ -76,14 +120,39 @@ function CreditCostTable() {
   );
 }
 
-function TierCard({ tier, currentTier, onSelect, isLoading }: {
+function BillingToggle({ isAnnual, onToggle }: { isAnnual: boolean; onToggle: () => void }) {
+  return (
+    <View style={styles.toggleContainer}>
+      <Pressable
+        onPress={() => { if (isAnnual) onToggle(); }}
+        style={[styles.toggleOption, !isAnnual && styles.toggleOptionActive]}
+      >
+        <Text style={[styles.toggleText, !isAnnual && styles.toggleTextActive]}>Monthly</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => { if (!isAnnual) onToggle(); }}
+        style={[styles.toggleOption, isAnnual && styles.toggleOptionActive]}
+      >
+        <Text style={[styles.toggleText, isAnnual && styles.toggleTextActive]}>Annual</Text>
+        <View style={styles.saveBadge}>
+          <Text style={styles.saveBadgeText}>SAVE 20%</Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+function TierCard({ tier, currentTier, onSelect, isLoading, isAnnual }: {
   tier: TierConfig;
   currentTier: string;
   onSelect: (tier: 'pro' | 'elite') => void;
   isLoading: boolean;
+  isAnnual: boolean;
 }) {
   const isCurrent = currentTier === tier.id;
   const isHighlighted = tier.highlight;
+  const displayPrice = isAnnual && tier.price > 0 ? tier.annualMonthly : tier.priceLabel;
+  const billingNote = isAnnual && tier.price > 0 ? `${tier.annualPriceLabel}/year` : tier.price > 0 ? 'billed monthly' : '';
 
   return (
     <View style={[
@@ -101,7 +170,7 @@ function TierCard({ tier, currentTier, onSelect, isLoading }: {
       </Text>
       <View style={styles.priceRow}>
         <Text style={[styles.price, isHighlighted && styles.priceHighlighted]}>
-          {tier.priceLabel}
+          {displayPrice}
         </Text>
         {tier.price > 0 && (
           <Text style={[styles.priceUnit, isHighlighted && styles.priceUnitHighlighted]}>
@@ -109,6 +178,11 @@ function TierCard({ tier, currentTier, onSelect, isLoading }: {
           </Text>
         )}
       </View>
+      {billingNote !== '' && (
+        <Text style={[styles.billingNote, isHighlighted && { color: 'rgba(255,255,255,0.4)' }]}>
+          {billingNote}
+        </Text>
+      )}
 
       <View style={[styles.creditsBadge, isHighlighted && styles.creditsBadgeHighlighted]}>
         <Feather name="zap" size={14} color={Colors.accent} />
@@ -174,7 +248,7 @@ function TierCard({ tier, currentTier, onSelect, isLoading }: {
               styles.buttonText,
               isHighlighted ? styles.buttonTextHighlighted : styles.buttonTextDefault,
             ]}>
-              Start {tier.name} — {tier.priceLabel}/mo
+              Start {tier.name} — {displayPrice}/mo
             </Text>
           )}
         </Pressable>
@@ -187,6 +261,7 @@ export default function PricingScreen() {
   const insets = useSafeAreaInsets();
   const { status, startCheckout } = useSubscription();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [isAnnual, setIsAnnual] = useState(false);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
@@ -237,9 +312,18 @@ export default function PricingScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.subtitle}>
-          Transparent, credit-based pricing. Start free. Scale as you grow.
-        </Text>
+        <View style={styles.pledgeBox}>
+          <Feather name="shield" size={18} color={Colors.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pledgeTitle}>No surprise bills. Ever.</Text>
+            <Text style={styles.pledgeSub}>Transparent, credit-based pricing. You always know exactly what you&apos;ll pay.</Text>
+          </View>
+        </View>
+
+        <BillingToggle isAnnual={isAnnual} onToggle={() => {
+          if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setIsAnnual(!isAnnual);
+        }} />
 
         {TIERS.map(tier => (
           <TierCard
@@ -248,8 +332,11 @@ export default function PricingScreen() {
             currentTier={status.tier}
             onSelect={handleSelect}
             isLoading={loadingTier === tier.id}
+            isAnnual={isAnnual}
           />
         ))}
+
+        <PriceComparisonTable />
 
         <CreditCostTable />
 
@@ -264,7 +351,7 @@ export default function PricingScreen() {
         </View>
 
         <Text style={styles.disclaimer}>
-          Cancel anytime. Subscriptions billed monthly through Stripe. Overage charges applied at end of billing cycle.
+          Cancel anytime. Subscriptions billed through Stripe. Overage charges applied at end of billing cycle.{'\n'}Annual plans save 20% — billed as a single yearly payment.
         </Text>
       </ScrollView>
     </View>
@@ -310,13 +397,74 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-  subtitle: {
-    fontSize: 15,
+  pledgeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+  },
+  pledgeTitle: {
+    fontSize: 16,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.white,
+    marginBottom: 2,
+  },
+  pledgeSub: {
+    fontSize: 13,
     fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.5)',
+    lineHeight: 18,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  toggleOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  toggleOptionActive: {
+    backgroundColor: Colors.primary,
+  },
+  toggleText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
     color: Colors.warmGray,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
+  },
+  toggleTextActive: {
+    color: Colors.white,
+  },
+  saveBadge: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  saveBadgeText: {
+    fontSize: 9,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.primary,
+    letterSpacing: 0.5,
+  },
+  billingNote: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGrayLight,
+    marginTop: -4,
+    marginBottom: 12,
   },
   card: {
     backgroundColor: Colors.white,
@@ -484,6 +632,75 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
     color: Colors.warmGray,
   },
+  compTable: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  compHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  compTitle: {
+    fontSize: 16,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    letterSpacing: -0.2,
+  },
+  compSubtitle: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    marginBottom: 16,
+    lineHeight: 17,
+  },
+  compRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  compRowHighlight: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    borderBottomWidth: 0,
+  },
+  compLeft: {
+    flex: 1,
+  },
+  compName: {
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.black,
+  },
+  compNote: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGrayLight,
+    marginTop: 1,
+  },
+  compRight: {
+    alignItems: 'flex-end',
+  },
+  compCost: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.error,
+  },
+  compAgents: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGrayLight,
+  },
   creditTable: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -553,7 +770,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGrayLight,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     marginTop: 4,
     lineHeight: 18,
   },

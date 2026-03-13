@@ -12,6 +12,9 @@ export interface TierConfig {
   name: string;
   price: number;
   priceLabel: string;
+  annualPrice: number;
+  annualPriceLabel: string;
+  annualMonthly: string;
   features: string[];
   creditFeatures: string[];
   limits: {
@@ -48,6 +51,9 @@ export const TIERS: TierConfig[] = [
     name: 'Free',
     price: 0,
     priceLabel: '$0',
+    annualPrice: 0,
+    annualPriceLabel: '$0',
+    annualMonthly: '$0',
     features: [
       '2 agents (Builder + Writer)',
       'Basic markdown rendering',
@@ -73,6 +79,9 @@ export const TIERS: TierConfig[] = [
     name: 'Pro',
     price: 1900,
     priceLabel: '$19',
+    annualPrice: 18200,
+    annualPriceLabel: '$182',
+    annualMonthly: '$15',
     features: [
       'All 15 AI agents',
       'Live HTML previews',
@@ -100,6 +109,9 @@ export const TIERS: TierConfig[] = [
     name: 'Elite',
     price: 4900,
     priceLabel: '$49',
+    annualPrice: 47000,
+    annualPriceLabel: '$470',
+    annualMonthly: '$39',
     features: [
       'Everything in Pro',
       'Fastest response speed',

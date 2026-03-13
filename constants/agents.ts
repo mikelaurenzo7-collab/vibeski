@@ -3,6 +3,12 @@ import type { Feather } from '@expo/vector-icons';
 
 type FeatherIcon = ComponentProps<typeof Feather>['name'];
 
+export interface AgentHandoff {
+  agentId: string;
+  label: string;
+  description: string;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -11,6 +17,7 @@ export interface Agent {
   color: string;
   colorLight: string;
   suggestions: { label: string; prompt: string }[];
+  handoffs: AgentHandoff[];
 }
 
 export const AGENTS: Agent[] = [
@@ -27,6 +34,11 @@ export const AGENTS: Agent[] = [
       { label: 'Dashboard', prompt: 'Build me an analytics dashboard with revenue charts, user metrics, conversion rates, and a clean dark theme' },
       { label: 'Portfolio site', prompt: 'Build me a sleek personal portfolio website with a hero section, project gallery, about me section, and contact form' },
     ],
+    handoffs: [
+      { agentId: 'seo', label: 'Optimize SEO', description: 'Run an SEO audit on your app' },
+      { agentId: 'branding', label: 'Create branding', description: 'Design a brand identity' },
+      { agentId: 'designer', label: 'Refine design', description: 'Get UI/UX feedback' },
+    ],
   },
   {
     id: 'strategist',
@@ -40,6 +52,11 @@ export const AGENTS: Agent[] = [
       { label: 'Go-to-market', prompt: 'Create a detailed go-to-market strategy for launching an AI-powered personal finance app' },
       { label: 'Competitive analysis', prompt: 'Do a competitive analysis of the top 5 project management tools and identify market gaps I can exploit' },
       { label: 'Revenue model', prompt: 'Help me design a revenue model and pricing strategy for a B2B SaaS platform' },
+    ],
+    handoffs: [
+      { agentId: 'builder', label: 'Build it', description: 'Turn this plan into an app' },
+      { agentId: 'branding', label: 'Build brand', description: 'Create brand identity from strategy' },
+      { agentId: 'content-machine', label: 'Create content', description: 'Generate marketing content' },
     ],
   },
   {
@@ -55,6 +72,11 @@ export const AGENTS: Agent[] = [
       { label: 'Email sequence', prompt: 'Create a 5-email welcome sequence for a premium newsletter about tech and entrepreneurship' },
       { label: 'Social content', prompt: 'Create a week of engaging social media content (LinkedIn + Twitter) for a startup founder building in public' },
     ],
+    handoffs: [
+      { agentId: 'seo', label: 'Optimize for search', description: 'SEO-optimize your content' },
+      { agentId: 'content-machine', label: 'Scale content', description: 'Create social posts from this' },
+      { agentId: 'strategist', label: 'Strategy check', description: 'Align content with business goals' },
+    ],
   },
   {
     id: 'coder',
@@ -68,6 +90,10 @@ export const AGENTS: Agent[] = [
       { label: 'System design', prompt: 'Help me design the architecture for a real-time collaborative document editor like Google Docs' },
       { label: 'API design', prompt: 'Design a RESTful API for a social media platform with users, posts, comments, and real-time notifications' },
       { label: 'Code review', prompt: 'I want to learn best practices for writing clean, maintainable code. Give me a masterclass on code quality principles with examples' },
+    ],
+    handoffs: [
+      { agentId: 'builder', label: 'Make it visual', description: 'Turn code into a full app' },
+      { agentId: 'seo-optimizer', label: 'Optimize performance', description: 'Speed up your code' },
     ],
   },
   {
@@ -83,6 +109,10 @@ export const AGENTS: Agent[] = [
       { label: 'Design system', prompt: 'Help me create a design system foundation: typography scale, spacing system, component guidelines, and visual principles' },
       { label: 'Redesign critique', prompt: 'Walk me through a UX review framework and the key principles of great mobile UI design' },
     ],
+    handoffs: [
+      { agentId: 'builder', label: 'Build this design', description: 'Turn mockup into a working app' },
+      { agentId: 'branding', label: 'Full brand kit', description: 'Expand into complete brand identity' },
+    ],
   },
   {
     id: 'analyst',
@@ -96,6 +126,10 @@ export const AGENTS: Agent[] = [
       { label: 'Data breakdown', prompt: 'Help me create a framework for analyzing customer churn. What metrics should I track and how should I segment the analysis?' },
       { label: 'Trend report', prompt: 'Write an in-depth analysis of the top 10 technology trends that will shape business in the next 3 years' },
       { label: 'Decision framework', prompt: 'Help me build a decision matrix for choosing between building in-house vs buying a SaaS solution for our CRM needs' },
+    ],
+    handoffs: [
+      { agentId: 'strategist', label: 'Build strategy', description: 'Turn insights into a plan' },
+      { agentId: 'content-machine', label: 'Share findings', description: 'Create content from analysis' },
     ],
   },
   {
@@ -111,6 +145,11 @@ export const AGENTS: Agent[] = [
       { label: 'Brand refresh', prompt: 'I need to modernize my brand. Walk me through a brand audit framework and create updated visual identity recommendations for a 10-year-old consulting firm' },
       { label: 'Style guide', prompt: 'Build a comprehensive brand style guide covering logo usage, typography scale, iconography, photography style, and tone of voice for a direct-to-consumer skincare brand' },
     ],
+    handoffs: [
+      { agentId: 'builder', label: 'Build with brand', description: 'Create an app using these brand assets' },
+      { agentId: 'designer', label: 'Apply to UI', description: 'Design interfaces with this brand' },
+      { agentId: 'content-machine', label: 'Brand content', description: 'Create on-brand marketing' },
+    ],
   },
   {
     id: 'design-thinker',
@@ -124,6 +163,10 @@ export const AGENTS: Agent[] = [
       { label: 'User personas', prompt: 'Help me create detailed user personas for a meal planning app. Include demographics, pain points, goals, behaviors, and journey maps' },
       { label: 'Problem reframe', prompt: 'I\'m struggling with low user retention in my app. Help me reframe this problem using design thinking and generate 10 innovative solution concepts' },
       { label: 'Innovation workshop', prompt: 'Design a structured innovation workshop agenda for my team to generate new product ideas in the remote work tools space' },
+    ],
+    handoffs: [
+      { agentId: 'builder', label: 'Prototype it', description: 'Build a working prototype' },
+      { agentId: 'designer', label: 'Design it', description: 'Create polished UI designs' },
     ],
   },
   {
@@ -139,6 +182,11 @@ export const AGENTS: Agent[] = [
       { label: 'Content plan', prompt: 'Create a 3-month SEO content calendar with 12 blog post topics optimized for search. Include target keywords, search intent, and content outlines for each' },
       { label: 'Technical SEO', prompt: 'Walk me through a technical SEO checklist — site speed, mobile optimization, schema markup, crawlability, indexation issues, and Core Web Vitals improvements' },
     ],
+    handoffs: [
+      { agentId: 'content-machine', label: 'Create content', description: 'Write SEO-optimized content' },
+      { agentId: 'builder', label: 'Fix technical SEO', description: 'Implement SEO improvements' },
+      { agentId: 'programmatic-seo', label: 'Scale pages', description: 'Generate pages at scale' },
+    ],
   },
   {
     id: 'programmatic-seo',
@@ -152,6 +200,10 @@ export const AGENTS: Agent[] = [
       { label: 'Product pages', prompt: 'Design a scalable template system for generating SEO-optimized product comparison pages. I need a structure that works for thousands of product combinations' },
       { label: 'Directory site', prompt: 'Plan a programmatic SEO directory website. Help me design the data schema, page templates, URL structure, and automated content generation strategy' },
       { label: 'Blog at scale', prompt: 'Create a framework for generating 50+ SEO blog posts from a data set. Include title templates, content outlines, internal linking strategy, and schema markup' },
+    ],
+    handoffs: [
+      { agentId: 'builder', label: 'Build pages', description: 'Generate the page templates' },
+      { agentId: 'seo', label: 'Audit SEO', description: 'Validate SEO quality' },
     ],
   },
   {
@@ -167,6 +219,10 @@ export const AGENTS: Agent[] = [
       { label: 'Ad copy', prompt: 'Write 5 variations of Facebook/Instagram ad copy for a premium online course about personal finance. Include headlines, body copy, and CTAs optimized for conversions' },
       { label: 'Content repurpose', prompt: 'I have a 2000-word blog post about remote work productivity. Help me repurpose it into 10 LinkedIn posts, 5 tweets, 2 email snippets, and 1 infographic outline' },
     ],
+    handoffs: [
+      { agentId: 'seo', label: 'SEO check', description: 'Optimize content for search' },
+      { agentId: 'designer', label: 'Visual content', description: 'Create graphics for this content' },
+    ],
   },
   {
     id: 'file-converter',
@@ -180,6 +236,9 @@ export const AGENTS: Agent[] = [
       { label: 'Data formatter', prompt: 'I need to transform data between formats. Help me convert between JSON, CSV, XML, YAML, and Markdown tables — I\'ll provide the source data' },
       { label: 'SQL generator', prompt: 'Help me convert a spreadsheet structure into SQL CREATE TABLE and INSERT statements. I\'ll describe my columns and data' },
       { label: 'API response', prompt: 'Help me transform raw API response data into a clean, structured format. I\'ll paste the response and tell you the output format I need' },
+    ],
+    handoffs: [
+      { agentId: 'coder', label: 'Process data', description: 'Write code to automate this conversion' },
     ],
   },
   {
@@ -195,6 +254,10 @@ export const AGENTS: Agent[] = [
       { label: 'Project starter', prompt: 'Find me the best open-source starter templates and boilerplates for building a full-stack SaaS application with Next.js and Stripe' },
       { label: 'Tool discovery', prompt: 'What are the best open-source AI/ML tools and frameworks for building a text classification system? Compare options with pros and cons' },
     ],
+    handoffs: [
+      { agentId: 'coder', label: 'Integrate it', description: 'Help integrate this library' },
+      { agentId: 'builder', label: 'Build with it', description: 'Create an app using this library' },
+    ],
   },
   {
     id: 'seo-optimizer',
@@ -209,6 +272,10 @@ export const AGENTS: Agent[] = [
       { label: 'Conversion audit', prompt: 'Do a conversion rate optimization audit for my landing page. Cover above-the-fold content, CTAs, trust signals, page speed, and mobile experience' },
       { label: 'App store SEO', prompt: 'Help me optimize my mobile app listing for the App Store and Google Play — title, subtitle, description, keywords, and screenshot strategy' },
     ],
+    handoffs: [
+      { agentId: 'builder', label: 'Implement fixes', description: 'Apply these optimizations' },
+      { agentId: 'seo', label: 'Full SEO audit', description: 'Deep-dive SEO analysis' },
+    ],
   },
   {
     id: 'website-cloner',
@@ -222,6 +289,10 @@ export const AGENTS: Agent[] = [
       { label: 'Design system', prompt: 'Analyze the design patterns used by top tech company websites (Stripe, Notion, Figma) and build me a landing page that combines the best elements' },
       { label: 'Redesign', prompt: 'I want to redesign my outdated website. Describe your current site and I\'ll create a modern, professional version with current design trends' },
       { label: 'Page rebuild', prompt: 'Build me a pixel-perfect recreation of a modern pricing page with toggle billing, feature comparison table, and FAQ accordion — inspired by the best SaaS sites' },
+    ],
+    handoffs: [
+      { agentId: 'builder', label: 'Customize it', description: 'Modify the cloned design' },
+      { agentId: 'branding', label: 'Re-brand it', description: 'Apply your brand to this design' },
     ],
   },
 ];

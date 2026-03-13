@@ -105,6 +105,41 @@
     .price-btn-elite{background:var(--white);color:var(--primary)}
     .price-btn-elite:hover{opacity:0.9;transform:translateY(-1px)}
 
+    /* COMPARISON */
+    .comparison{padding:80px 0;background:var(--cream)}
+    .comp-table{max-width:720px;margin:0 auto;background:var(--white);border:1px solid var(--divider);border-radius:20px;overflow:hidden}
+    .comp-row{display:grid;grid-template-columns:1fr auto auto;gap:16px;padding:14px 24px;align-items:center;border-bottom:1px solid var(--divider)}
+    .comp-row:last-child{border-bottom:0}
+    .comp-row.comp-header{background:var(--cream);font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:1px;padding:12px 24px}
+    .comp-row.comp-highlight{background:var(--primary)}
+    .comp-name{font-size:14px;font-weight:600;color:var(--black)}
+    .comp-cost{font-size:14px;font-weight:700;color:var(--error);text-align:right}
+    .comp-agents{font-size:13px;color:var(--gray);text-align:right}
+    .comp-highlight .comp-name{color:var(--accent)}
+    .comp-highlight .comp-cost{color:var(--accent)}
+    .comp-highlight .comp-agents{color:rgba(255,255,255,0.5)}
+    .comp-note{font-size:11px;color:var(--gray-light);margin-top:2px}
+    .comp-highlight .comp-note{color:rgba(255,255,255,0.4)}
+    .pledge-box{max-width:720px;margin:24px auto 0;background:var(--primary);border-radius:14px;padding:20px 24px;display:flex;align-items:center;gap:16px}
+    .pledge-icon{font-size:24px;flex-shrink:0}
+    .pledge-title{font-size:16px;font-weight:700;color:var(--white);margin-bottom:2px}
+    .pledge-desc{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5}
+
+    /* TRUST */
+    .trust{padding:60px 0;background:var(--white);text-align:center}
+    .trust-grid{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;max-width:800px;margin:0 auto}
+    .trust-item{display:flex;flex-direction:column;align-items:center;gap:6px}
+    .trust-icon{font-size:28px}
+    .trust-label{font-size:14px;font-weight:600;color:var(--black)}
+    .trust-desc{font-size:12px;color:var(--gray);max-width:140px}
+
+    /* ANNUAL TOGGLE */
+    .billing-toggle{display:flex;justify-content:center;margin-bottom:40px}
+    .toggle-wrap{display:flex;background:var(--cream);border:1px solid var(--divider);border-radius:12px;padding:4px}
+    .toggle-btn{padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;color:var(--gray);cursor:pointer;border:none;background:none;transition:all 0.2s;display:flex;align-items:center;gap:6px}
+    .toggle-btn.active{background:var(--primary);color:var(--white)}
+    .save-pill{font-size:9px;font-weight:700;background:var(--accent);color:var(--primary);padding:2px 8px;border-radius:4px;letter-spacing:0.5px}
+
     /* CTA */
     .cta{padding:80px 0;background:var(--primary);text-align:center;position:relative;overflow:hidden}
     .cta::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 50%,rgba(201,162,78,0.06),transparent 50%)}
@@ -132,10 +167,19 @@
       .agents-grid{grid-template-columns:repeat(2,1fr)}
       .features-grid{grid-template-columns:1fr}
       .pricing-grid{grid-template-columns:1fr;max-width:400px}
+      .comp-row{grid-template-columns:1fr;gap:6px;padding:12px 16px}
+      .comp-row.comp-header{display:none}
+      .comp-cost,.comp-agents{text-align:left}
+      .comp-row:not(.comp-header):not(.comp-highlight){display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center}
+      .pledge-box{flex-direction:column;text-align:center;gap:10px}
+      .trust-grid{gap:24px}
+      .trust-item{min-width:120px}
     }
     @media(max-width:480px){
       .agents-grid{grid-template-columns:1fr 1fr;gap:8px}
       .agent-card{padding:14px}
+      .comp-table{border-radius:14px}
+      .toggle-btn{padding:8px 16px;font-size:13px}
     }
 
     /* Animations */
@@ -165,7 +209,7 @@
       <div class="hero-badge animate"><span class="hero-badge-dot"></span> 15 AI Agents Ready</div>
       <h1 class="animate d1">FIELD OF <span>DREAMS</span></h1>
       <p class="hero-tagline animate d2">If you build it, they will come.</p>
-      <p class="hero-sub animate d3">15 specialized AI agents — build apps, write copy, design brands, audit SEO, clone websites. Your entire creative team, one subscription.</p>
+      <p class="hero-sub animate d3">15 specialized AI agents for less than one ChatGPT subscription. Build apps, write copy, design brands, audit SEO, clone websites.</p>
       <div class="hero-actions animate d4">
         <a href="EXPO_WEB_URL_PLACEHOLDER" class="btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -250,8 +294,14 @@
   <section class="pricing" id="pricing">
     <div class="container">
       <div class="section-label">PRICING</div>
-      <h2 class="section-title">Simple, transparent pricing</h2>
-      <p class="section-sub">Start free. Upgrade when you're ready. Never lose access mid-project.</p>
+      <h2 class="section-title">15 AI experts. One clear price.</h2>
+      <p class="section-sub">No surprise bills. No token overages. Just predictable, credit-based pricing.</p>
+      <div class="billing-toggle">
+        <div class="toggle-wrap">
+          <button class="toggle-btn active" id="toggleMonthly" onclick="setBilling('monthly')">Monthly</button>
+          <button class="toggle-btn" id="toggleAnnual" onclick="setBilling('annual')">Annual <span class="save-pill">SAVE 20%</span></button>
+        </div>
+      </div>
       <div class="pricing-grid">
         <div class="price-card">
           <div class="price-name">Free</div>
@@ -265,15 +315,15 @@
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Conversation history</li>
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>4K token responses</li>
           </ul>
-          <div class="overage-text">No overages — resets daily</div>
+          <div class="overage-text">No overages — resets daily at midnight UTC</div>
           <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-free">Get Started Free</a>
         </div>
         <div class="price-card featured">
           <div class="price-popular">MOST POPULAR</div>
           <div class="price-name">Pro</div>
           <div class="price-desc">For creators who ship consistently</div>
-          <div class="price-amount">$19</div>
-          <div class="price-per">/month</div>
+          <div class="price-amount" data-monthly="$19" data-annual="$15">$19</div>
+          <div class="price-per" data-monthly="/month" data-annual="/mo — billed $182/year">/month</div>
           <div class="credits-label">🎫 500 credits / month</div>
           <ul class="price-features">
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>All 15 AI agents</li>
@@ -282,14 +332,14 @@
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Command Center access</li>
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Priority response speed</li>
           </ul>
-          <div class="overage-text">Overage: $0.05 per credit beyond 500</div>
-          <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-pro">Start Pro — $19/mo</a>
+          <div class="overage-text">Overage: $0.05/credit — never locked out</div>
+          <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-pro" data-monthly="Start Pro — $19/mo" data-annual="Start Pro — $15/mo">Start Pro — $19/mo</a>
         </div>
         <div class="price-card">
           <div class="price-name">Elite</div>
           <div class="price-desc">For teams and power users</div>
-          <div class="price-amount">$49</div>
-          <div class="price-per">/month</div>
+          <div class="price-amount" data-monthly="$49" data-annual="$39">$49</div>
+          <div class="price-per" data-monthly="/month" data-annual="/mo — billed $470/year">/month</div>
           <div class="credits-label">🎫 2,000 credits / month</div>
           <ul class="price-features">
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Everything in Pro</li>
@@ -298,8 +348,92 @@
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Lowest overage rates</li>
             <li class="price-feature"><svg class="price-feature-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Data export & API access</li>
           </ul>
-          <div class="overage-text">Overage: $0.03 per credit beyond 2,000</div>
-          <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-elite">Start Elite — $49/mo</a>
+          <div class="overage-text">Overage: $0.03/credit — never locked out</div>
+          <a href="EXPO_WEB_URL_PLACEHOLDER" class="price-btn price-btn-elite" data-monthly="Start Elite — $49/mo" data-annual="Start Elite — $39/mo">Start Elite — $49/mo</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="comparison" id="comparison">
+    <div class="container">
+      <div class="section-label">REAL COST COMPARISON</div>
+      <h2 class="section-title">What creators actually pay</h2>
+      <p class="section-sub">Based on real-world usage patterns. No hidden fees, no token surprises.</p>
+      <div class="comp-table">
+        <div class="comp-row comp-header">
+          <div>Platform</div>
+          <div>Real Monthly Cost</div>
+          <div>AI Agents</div>
+        </div>
+        <div class="comp-row">
+          <div><div class="comp-name">Replit Agent</div><div class="comp-note">Unpredictable overages</div></div>
+          <div class="comp-cost">$75–$250</div>
+          <div class="comp-agents">1 general</div>
+        </div>
+        <div class="comp-row">
+          <div><div class="comp-name">Bolt.new</div><div class="comp-note">Token burn surprises</div></div>
+          <div class="comp-cost">$50–$300</div>
+          <div class="comp-agents">1 general</div>
+        </div>
+        <div class="comp-row">
+          <div><div class="comp-name">Lovable</div><div class="comp-note">Limited free tier</div></div>
+          <div class="comp-cost">$40–$200</div>
+          <div class="comp-agents">1 general</div>
+        </div>
+        <div class="comp-row">
+          <div><div class="comp-name">Cursor AI</div><div class="comp-note">Desktop only</div></div>
+          <div class="comp-cost">$40–$150</div>
+          <div class="comp-agents">1 code-only</div>
+        </div>
+        <div class="comp-row">
+          <div><div class="comp-name">ChatGPT Pro</div><div class="comp-note">No app building</div></div>
+          <div class="comp-cost">$20–$200</div>
+          <div class="comp-agents">GPT Store</div>
+        </div>
+        <div class="comp-row comp-highlight">
+          <div><div class="comp-name">Field of Dreams</div><div class="comp-note">No surprise bills. Ever.</div></div>
+          <div class="comp-cost">$19–$49</div>
+          <div class="comp-agents">15 specialists</div>
+        </div>
+      </div>
+      <div class="pledge-box">
+        <div class="pledge-icon">🛡️</div>
+        <div>
+          <div class="pledge-title">Our transparency pledge</div>
+          <div class="pledge-desc">Credit-based pricing means you always know what you'll pay. No token overages, no surprise bills. Go over your credits? Low-cost overages keep you building — never locked out mid-project.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trust">
+    <div class="container">
+      <div class="trust-grid">
+        <div class="trust-item">
+          <div class="trust-icon">🔒</div>
+          <div class="trust-label">Encrypted & Secure</div>
+          <div class="trust-desc">JWT auth, secrets vault, rate limiting</div>
+        </div>
+        <div class="trust-item">
+          <div class="trust-icon">💳</div>
+          <div class="trust-label">Stripe Powered</div>
+          <div class="trust-desc">Industry-standard payment processing</div>
+        </div>
+        <div class="trust-item">
+          <div class="trust-icon">🧠</div>
+          <div class="trust-label">AI Memory</div>
+          <div class="trust-desc">Learns your preferences over time</div>
+        </div>
+        <div class="trust-item">
+          <div class="trust-icon">🔄</div>
+          <div class="trust-label">Dual AI Models</div>
+          <div class="trust-desc">Raptor primary, Gemini fallback</div>
+        </div>
+        <div class="trust-item">
+          <div class="trust-icon">📱</div>
+          <div class="trust-label">Works Everywhere</div>
+          <div class="trust-desc">iOS, Android, and web</div>
         </div>
       </div>
     </div>
@@ -308,10 +442,10 @@
   <section class="cta">
     <div class="container">
       <h2>If you build it, they will come.</h2>
-      <p>15 AI agents. Zero learning curve. Start building your dreams today.</p>
+      <p>15 AI agents. Transparent pricing. Zero learning curve. Start building your dreams today.</p>
       <a href="EXPO_WEB_URL_PLACEHOLDER" class="btn-primary">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        Launch App
+        Start Building Free
       </a>
     </div>
   </section>
@@ -328,12 +462,22 @@
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) { e.target.style.animationPlayState = 'running'; observer.unobserve(e.target); } });
     }, { threshold: 0.1 });
-    document.querySelectorAll('.feature-card, .agent-card, .price-card').forEach(el => {
+    document.querySelectorAll('.feature-card, .agent-card, .price-card, .comp-row:not(.comp-header), .trust-item').forEach(el => {
       el.style.opacity = '0';
       el.style.animation = 'fadeUp 0.5s ease forwards';
       el.style.animationPlayState = 'paused';
       observer.observe(el);
     });
+
+    function setBilling(mode) {
+      const isAnnual = mode === 'annual';
+      document.getElementById('toggleMonthly').classList.toggle('active', !isAnnual);
+      document.getElementById('toggleAnnual').classList.toggle('active', isAnnual);
+      const key = isAnnual ? 'annual' : 'monthly';
+      document.querySelectorAll('[data-monthly]').forEach(el => {
+        el.textContent = el.getAttribute('data-' + key) || el.textContent;
+      });
+    }
   </script>
 </body>
 </html>
