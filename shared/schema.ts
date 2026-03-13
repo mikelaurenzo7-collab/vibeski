@@ -69,6 +69,25 @@ export const projectData = pgTable("project_data", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+export const userMemories = pgTable("user_memories", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  content: text("content").notNull(),
+  importance: integer("importance").notNull().default(1),
+  source: text("source"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const conversationSummaries = pgTable("conversation_summaries", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  summary: text("summary").notNull(),
+  messageCountAtSummary: integer("message_count_at_summary").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -105,3 +124,5 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Project = typeof projects.$inferSelect;
 export type ProjectFile = typeof projectFiles.$inferSelect;
 export type ProjectDataRow = typeof projectData.$inferSelect;
+export type UserMemory = typeof userMemories.$inferSelect;
+export type ConversationSummary = typeof conversationSummaries.$inferSelect;

@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { storage } from "./storage";
 import { signupSchema, loginSchema } from "@shared/schema";
+import { buildContextMessages, getMemoryStats } from "./memory";
 import {
   type AuthRequest,
   authMiddleware,
@@ -643,14 +644,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       incrementUsage(deviceId, agentId);
 
+      let conversationId: number | null = null;
+      if (req.body.conversationId) {
+        const parsedId = parseInt(req.body.conversationId);
+        if (!isNaN(parsedId)) {
+          const convo = await storage.getConversation(parsedId);
+          if (convo && convo.userId === deviceId) {
+            conversationId = parsedId;
+          }
+        }
+      }
+
+      let apiMessages: { role: string; content: string }[];
+      try {
+        apiMessages = await buildContextMessages(
+          deviceId,
+          conversationId,
+          typeof agentId === 'string' ? agentId : 'builder',
+          sanitized,
+          systemPrompt,
+        );
+      } catch (e) {
+        console.error('[memory] context build failed, using basic:', e);
+        apiMessages = [
+          { role: 'system', content: systemPrompt },
+          ...sanitized.map((m: any) => ({ role: m.role, content: m.content })),
+        ];
+      }
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.flushHeaders();
 
-      const apiMessages = [
-        { role: 'system' as const, content: systemPrompt },
-        ...sanitized.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-      ];
       const maxTokens = tierConfig.limits.maxTokens || 4096;
 
       let streamed = false;
@@ -851,6 +876,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Webhook error:", error);
       res.status(400).json({ error: "Webhook processing failed" });
+    }
+  });
+
+  app.get("/api/memory", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const stats = await getMemoryStats(userId);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch memory stats" });
+    }
+  });
+
+  app.get("/api/memory/all", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const memories = await storage.getUserMemories(userId);
+      res.json(memories);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch memories" });
+    }
+  });
+
+  app.post("/api/memory", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const { category, content, importance } = req.body;
+      if (!category || !content) return res.status(400).json({ error: "Category and content required" });
+      const memory = await storage.addUserMemory({ userId, category, content, importance, source: 'manual' });
+      res.status(201).json(memory);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add memory" });
+    }
+  });
+
+  app.delete("/api/memory/:id", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const memories = await storage.getUserMemories(userId);
+      const memId = parseInt(req.params.id);
+      const owned = memories.find(m => m.id === memId);
+      if (!owned) return res.status(404).json({ error: "Memory not found" });
+      await storage.deleteUserMemory(memId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete memory" });
     }
   });
 

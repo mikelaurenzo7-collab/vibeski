@@ -63,6 +63,9 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - **Multi-File Generation**: Builder generates separate index.html, style.css, script.js files using ===FILE: path=== delimiters; parsed by `lib/file-parser.ts`
 - **Live Deployment**: Deploy projects to public URLs at `/live/:slug/`, served directly from database; per-project data API at `/live/:slug/api/data/:collection` for CRUD persistence
 - **Project Detail Screen**: `app/project/[id].tsx` with preview tab (iframe), files tab (code viewer), deploy/undeploy, live URL banner
+- **Persistent Memory System**: Auto-extracts user preferences, tech stack, business context, style preferences, project goals, and corrections from chat messages. Stored in `userMemories` table and injected into system prompts for personalized responses across conversations.
+- **Conversation Summarization**: When conversations exceed 20 messages, older messages are compressed into summaries stored in `conversationSummaries` table. Recent messages (last 16) are kept in full, with summaries providing context for earlier discussion.
+- **Project Context Injection**: Builder conversations automatically include existing project file structure and content in the system prompt, enabling iterative editing with full awareness of current project state.
 
 ## Key Files
 - `app/index.tsx` - Home screen with template gallery banner, agents grid, conversation list, usage pill, and personalized content
@@ -79,7 +82,8 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - `constants/agents.ts` - Agent definitions (prompts, colors, icons, suggestions)
 - `constants/templates.ts` - Template category and template definitions (6 categories, 24 templates)
 - `constants/colors.ts` - Theme colors
-- `shared/schema.ts` - Drizzle schema (users, conversations, messages, projects, projectFiles, projectData)
+- `shared/schema.ts` - Drizzle schema (users, conversations, messages, projects, projectFiles, projectData, userMemories, conversationSummaries)
+- `server/memory.ts` - Memory engine: context assembly, memory extraction, conversation summarization, project context injection
 - `shared/subscription.ts` - Subscription tier config, types, and shared logic
 - `lib/auth-context.tsx` - Authentication state management (JWT, user, login/signup/logout)
 - `lib/chat-context.tsx` - Chat state management (dual mode: local for guests, server-backed for logged-in; conversations include agentId)
@@ -106,6 +110,10 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - `POST /api/subscription/checkout` - Create Stripe checkout session
 - `POST /api/subscription/portal` - Create Stripe billing portal session
 - `POST /api/subscription/webhook` - Stripe webhook handler
+- `GET /api/memory` - Get user memory stats (categories, counts, recent items)
+- `GET /api/memory/all` - Get all user memories
+- `POST /api/memory` - Add a manual memory entry
+- `DELETE /api/memory/:id` - Delete a specific memory
 - `GET /api/projects` - List user's projects
 - `POST /api/projects` - Create project with optional files
 - `GET /api/projects/:id` - Get project with files

@@ -17,7 +17,8 @@ async function getDeviceId(): Promise<string> {
 export async function streamChat(
   messages: { role: string; content: string }[],
   onChunk: (text: string) => void,
-  agentId?: string
+  agentId?: string,
+  conversationId?: string
 ) {
   const baseUrl = getApiUrl();
   const deviceId = await getDeviceId();
@@ -25,6 +26,9 @@ export async function streamChat(
   const body: Record<string, unknown> = { messages };
   if (agentId) {
     body.agentId = agentId;
+  }
+  if (conversationId) {
+    body.conversationId = conversationId;
   }
 
   const headers: Record<string, string> = {

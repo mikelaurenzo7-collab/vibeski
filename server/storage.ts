@@ -8,6 +8,8 @@ import {
   projects,
   projectFiles,
   projectData,
+  userMemories,
+  conversationSummaries,
   type User,
   type InsertUser,
   type Conversation,
@@ -17,6 +19,8 @@ import {
   type Project,
   type ProjectFile,
   type ProjectDataRow,
+  type UserMemory,
+  type ConversationSummary,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -333,6 +337,109 @@ export class DatabaseStorage implements IStorage {
       .from(projects)
       .where(eq(projects.conversationId, conversationId));
     return project;
+  }
+
+  async getUserMemories(userId: string, category?: string): Promise<UserMemory[]> {
+    if (category) {
+      return db
+        .select()
+        .from(userMemories)
+        .where(and(eq(userMemories.userId, userId), eq(userMemories.category, category)))
+        .orderBy(desc(userMemories.importance), desc(userMemories.updatedAt));
+    }
+    return db
+      .select()
+      .from(userMemories)
+      .where(eq(userMemories.userId, userId))
+      .orderBy(desc(userMemories.importance), desc(userMemories.updatedAt));
+  }
+
+  async addUserMemory(data: { userId: string; category: string; content: string; importance?: number; source?: string }): Promise<UserMemory> {
+    const existing = await db
+      .select()
+      .from(userMemories)
+      .where(and(
+        eq(userMemories.userId, data.userId),
+        eq(userMemories.category, data.category),
+        eq(userMemories.content, data.content)
+      ));
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(userMemories)
+        .set({ importance: (data.importance || 1) + existing[0].importance, updatedAt: new Date() })
+        .where(eq(userMemories.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    const [mem] = await db.insert(userMemories).values({
+      userId: data.userId,
+      category: data.category,
+      content: data.content,
+      importance: data.importance || 1,
+      source: data.source,
+    }).returning();
+    return mem;
+  }
+
+  async deleteUserMemory(id: number): Promise<boolean> {
+    const result = await db.delete(userMemories).where(eq(userMemories.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async pruneUserMemories(userId: string, maxPerCategory: number = 20): Promise<void> {
+    const all = await this.getUserMemories(userId);
+    const byCategory: Record<string, UserMemory[]> = {};
+    for (const m of all) {
+      if (!byCategory[m.category]) byCategory[m.category] = [];
+      byCategory[m.category].push(m);
+    }
+    for (const [, mems] of Object.entries(byCategory)) {
+      if (mems.length > maxPerCategory) {
+        const toDelete = mems.slice(maxPerCategory);
+        for (const m of toDelete) {
+          await db.delete(userMemories).where(eq(userMemories.id, m.id));
+        }
+      }
+    }
+  }
+
+  async getConversationSummary(conversationId: number): Promise<ConversationSummary | undefined> {
+    const [summary] = await db
+      .select()
+      .from(conversationSummaries)
+      .where(eq(conversationSummaries.conversationId, conversationId))
+      .orderBy(desc(conversationSummaries.createdAt))
+      .limit(1);
+    return summary;
+  }
+
+  async saveConversationSummary(conversationId: number, summary: string, messageCount: number): Promise<ConversationSummary> {
+    const existing = await db
+      .select()
+      .from(conversationSummaries)
+      .where(eq(conversationSummaries.conversationId, conversationId));
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(conversationSummaries)
+        .set({ summary, messageCountAtSummary: messageCount, createdAt: new Date() })
+        .where(eq(conversationSummaries.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    const [row] = await db.insert(conversationSummaries).values({
+      conversationId,
+      summary,
+      messageCountAtSummary: messageCount,
+    }).returning();
+    return row;
+  }
+
+  async getConversationMessageCount(conversationId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+    return result[0]?.count || 0;
   }
 }
 
