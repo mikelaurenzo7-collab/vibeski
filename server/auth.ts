@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
@@ -24,22 +24,24 @@ export function comparePassword(password: string, hash: string): Promise<boolean
   return bcrypt.compare(password, hash);
 }
 
-export function authMiddleware(req: AuthRequest, _res: Response, next: NextFunction) {
+export const authMiddleware: RequestHandler = (req: AuthRequest, _res, next) => {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
       req.userId = decoded.userId;
-    } catch {
+    } catch (err) {
+      console.error("JWT verification failed:", err instanceof Error ? err.message : err);
     }
   }
   next();
-}
+};
 
-export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+export const requireAuth: RequestHandler = (req: AuthRequest, res, next) => {
   if (!req.userId) {
-    return res.status(401).json({ error: "Authentication required" });
+    res.status(401).json({ error: "Authentication required" });
+    return;
   }
   next();
-}
+};

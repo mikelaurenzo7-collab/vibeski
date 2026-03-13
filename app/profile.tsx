@@ -105,6 +105,17 @@ export default function ProfileScreen() {
               <Text style={styles.sectionTitle}>Account</Text>
               <View style={styles.menuList}>
                 <Pressable
+                  onPress={() => router.push('/command-center')}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(201, 162, 78, 0.08)' }]}>
+                    <Feather name="terminal" size={16} color="#C9A24E" />
+                  </View>
+                  <Text style={styles.menuText}>Command Center</Text>
+                  <Feather name="chevron-right" size={16} color={Colors.warmGrayLight} />
+                </Pressable>
+                <View style={styles.menuItemDivider} />
+                <Pressable
                   onPress={() => router.push('/projects')}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
                 >
@@ -112,6 +123,17 @@ export default function ProfileScreen() {
                     <Feather name="folder" size={16} color="#1A6B4A" />
                   </View>
                   <Text style={styles.menuText}>My Projects</Text>
+                  <Feather name="chevron-right" size={16} color={Colors.warmGrayLight} />
+                </Pressable>
+                <View style={styles.menuItemDivider} />
+                <Pressable
+                  onPress={() => router.push('/billing')}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(14, 165, 233, 0.08)' }]}>
+                    <Feather name="credit-card" size={16} color="#0EA5E9" />
+                  </View>
+                  <Text style={styles.menuText}>Billing & Usage</Text>
                   <Feather name="chevron-right" size={16} color={Colors.warmGrayLight} />
                 </Pressable>
               </View>
@@ -274,6 +296,11 @@ const styles = StyleSheet.create({
   },
   menuItemPressed: {
     backgroundColor: Colors.creamDark,
+  },
+  menuItemDivider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginLeft: 58,
   },
   menuIcon: {
     width: 32,

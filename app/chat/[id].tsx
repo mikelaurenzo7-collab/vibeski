@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -34,13 +34,13 @@ function generateUniqueId(): string {
 export default function ChatScreen() {
   const { id, initialPrompt } = useLocalSearchParams<{ id: string; initialPrompt?: string }>();
   const insets = useSafeAreaInsets();
-  const { getConversation, saveMessages } = useChat();
+  const { conversations, saveMessages } = useChat();
   const { isLoggedIn, isLoading: authLoading } = useAuth();
   const { refreshStatus } = useSubscription();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
-  const conversation = getConversation(id);
+  const conversation = useMemo(() => conversations.find(c => c.id === id), [conversations, id]);
   const agent = getAgent(conversation?.agentId || 'builder');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -162,6 +162,12 @@ export default function ChatScreen() {
       setShowTyping(false);
 
       if (error instanceof Error) {
+        if (error.message === 'AUTH_REQUIRED') {
+          setMessages(currentMessages);
+          setIsStreaming(false);
+          router.push('/auth');
+          return;
+        }
         if (error.message === 'LIMIT_REACHED') {
           setMessages(currentMessages);
           setUpgradeModal({ visible: true, reason: 'limit_reached' });

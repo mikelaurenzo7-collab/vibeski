@@ -1,5 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
+import rateLimit from "express-rate-limit";
+import { z } from "zod";
 import { storage } from "./storage";
 import { signupSchema, loginSchema } from "@shared/schema";
 import {
@@ -18,6 +20,31 @@ import {
   handleWebhook,
 } from "./subscription";
 import { canAccessAgent, getTierConfig } from "../shared/subscription";
+
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: "Too many attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const aiRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: "Too many requests, please slow down" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const conversationCreateSchema = z.object({
+  title: z.string().min(1).max(200).optional().default("New Chat"),
+  agentId: z.string().min(1).max(50).optional().default("builder"),
+});
+
+const conversationUpdateSchema = z.object({
+  title: z.string().min(1).max(200),
+});
 
 const SHARED_FORMAT_RULES = `
 FORMATTING RULES:
@@ -354,9 +381,9 @@ ${SHARED_FORMAT_RULES}`,
 const DEFAULT_PROMPT = AGENT_PROMPTS.builder;
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.use(authMiddleware as any);
+  app.use(authMiddleware);
 
-  app.post("/api/auth/signup", async (req: AuthRequest, res) => {
+  app.post("/api/auth/signup", authRateLimiter, async (req: AuthRequest, res) => {
     try {
       const parsed = signupSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -384,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", async (req: AuthRequest, res) => {
+  app.post("/api/auth/login", authRateLimiter, async (req: AuthRequest, res) => {
     try {
       const parsed = loginSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -413,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/auth/me", requireAuth as any, async (req: AuthRequest, res) => {
+  app.get("/api/auth/me", requireAuth, async (req: AuthRequest, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (!user) {
@@ -426,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/conversations", requireAuth as any, async (req: AuthRequest, res) => {
+  app.get("/api/conversations", requireAuth, async (req: AuthRequest, res) => {
     try {
       const convos = await storage.getUserConversations(req.userId!);
       res.json(convos);
@@ -436,13 +463,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/conversations", requireAuth as any, async (req: AuthRequest, res) => {
+  app.post("/api/conversations", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const { title, agentId } = req.body;
+      const parsed = conversationCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const { title, agentId } = parsed.data;
       const convo = await storage.createConversation({
         userId: req.userId!,
-        title: title || "New Chat",
-        agentId: agentId || "builder",
+        title,
+        agentId,
       });
       res.status(201).json(convo);
     } catch (error) {
@@ -451,7 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/conversations/:id", requireAuth as any, async (req: AuthRequest, res) => {
+  app.get("/api/conversations/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
       const convo = await storage.getConversation(parseInt(req.params.id));
       if (!convo || convo.userId !== req.userId) {
@@ -465,13 +496,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/conversations/:id", requireAuth as any, async (req: AuthRequest, res) => {
+  app.put("/api/conversations/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
       const convo = await storage.getConversation(parseInt(req.params.id));
       if (!convo || convo.userId !== req.userId) {
         return res.status(404).json({ error: "Conversation not found" });
       }
-      const { title } = req.body;
+      const parsed = conversationUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const { title } = parsed.data;
       const updated = await storage.updateConversation(convo.id, { title });
       res.json(updated);
     } catch (error) {
@@ -480,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/conversations/:id", requireAuth as any, async (req: AuthRequest, res) => {
+  app.delete("/api/conversations/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
       const convo = await storage.getConversation(parseInt(req.params.id));
       if (!convo || convo.userId !== req.userId) {
@@ -494,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/conversations/:id/duplicate", requireAuth as any, async (req: AuthRequest, res) => {
+  app.post("/api/conversations/:id/duplicate", requireAuth, async (req: AuthRequest, res) => {
     try {
       const convo = await storage.getConversation(parseInt(req.params.id));
       if (!convo || convo.userId !== req.userId) {
@@ -511,7 +546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/conversations/:id/messages", requireAuth as any, async (req: AuthRequest, res) => {
+  app.post("/api/conversations/:id/messages", requireAuth, async (req: AuthRequest, res) => {
     try {
       const convo = await storage.getConversation(parseInt(req.params.id));
       if (!convo || convo.userId !== req.userId) {
@@ -538,10 +573,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", aiRateLimiter, requireAuth, async (req: AuthRequest, res) => {
     try {
       const { messages, agentId } = req.body;
-      const deviceId = req.headers['x-device-id'] as string || 'anonymous';
+      const deviceId = req.userId || (req.headers['x-device-id'] as string) || 'anonymous';
 
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: "Messages array is required" });
@@ -658,6 +693,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ error: "Failed to process chat request" });
       }
+    }
+  });
+
+  app.get("/api/settings", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getUserSettings(req.userId!);
+      res.json(settings);
+    } catch (error) {
+      console.error("Get settings error:", error);
+      res.status(500).json({ error: "Failed to get settings" });
+    }
+  });
+
+  app.put("/api/settings", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { settings } = req.body;
+      if (!settings || typeof settings !== 'object') {
+        return res.status(400).json({ error: "Settings object required" });
+      }
+      for (const [key, value] of Object.entries(settings)) {
+        if (typeof value === 'string' && value.trim()) {
+          await storage.setUserSetting(req.userId!, key, value);
+        }
+      }
+      const updated = await storage.getUserSettings(req.userId!);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update settings error:", error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  app.delete("/api/settings/:key", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteUserSetting(req.userId!, req.params.key);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete setting error:", error);
+      res.status(500).json({ error: "Failed to delete setting" });
+    }
+  });
+
+  app.get("/api/analytics", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const analytics = await storage.getUserAnalytics(req.userId!);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Analytics error:", error);
+      res.status(500).json({ error: "Failed to get analytics" });
     }
   });
 

@@ -1,5 +1,6 @@
 import { fetch } from 'expo/fetch';
 import { getApiUrl } from '@/lib/query-client';
+import { getAuthToken } from '@/lib/auth-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DEVICE_ID_KEY = '@field_of_dreams_device_id';
@@ -26,15 +27,26 @@ export async function streamChat(
     body.agentId = agentId;
   }
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'text/event-stream',
+    'x-device-id': deviceId,
+  };
+
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${baseUrl}api/chat`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'text/event-stream',
-      'x-device-id': deviceId,
-    },
+    headers,
     body: JSON.stringify(body),
   });
+
+  if (response.status === 401) {
+    throw new Error('AUTH_REQUIRED');
+  }
 
   if (response.status === 429) {
     const data = await response.json();

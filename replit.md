@@ -53,6 +53,7 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - **Code Blocks**: Dark-themed with language labels and copy buttons
 - **Streaming Responses**: Real-time SSE streaming with animated typing indicator
 - **Conversation Management**: Create, view, delete; conversations tagged with their agent
+- **Command Center**: Full admin dashboard with 7 sections — Overview (stats), Analytics (agent usage, activity), Secrets (API key storage), Integrations (webhook/Slack/GitHub/Notion/Zapier/GA), Settings (preferences, generation config), Data (JSON/text export), Security (password, sessions, privacy)
 - **Subscription Management**: Stripe-powered tiers with usage tracking and upgrade prompts
 - **Usage Tracking**: Daily generation counts, usage pills in header, billing screen
 - **Upgrade Modals**: Natural prompts when hitting limits or accessing locked agents
@@ -67,6 +68,7 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - `app/templates.tsx` - Template gallery screen with categories and curated prompt starters
 - `app/pricing.tsx` - Pricing screen with tier cards and Stripe checkout
 - `app/billing.tsx` - Billing & usage screen with plan details and portal access
+- `app/command-center.tsx` - Command Center with 7 tabbed sections (Overview, Analytics, Secrets, Integrations, Settings, Data, Security)
 - `app/_layout.tsx` - Root layout with AuthProvider, ChatProvider, SubscriptionProvider, QueryClient
 - `constants/agents.ts` - Agent definitions (prompts, colors, icons, suggestions)
 - `constants/templates.ts` - Template category and template definitions (6 categories, 24 templates)
@@ -124,9 +126,18 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - SSE streaming in Express: Uses inline `for await` directly on OpenAI/Gemini SDK stream objects. Wrapping streams in separate async generator classes causes buffering issues in Express POST handlers — keep streaming logic inline.
 - CORS: Allows `Content-Type`, `Authorization`, and `x-device-id` headers
 
+## Security & Hardening
+- **Rate Limiting**: `express-rate-limit` on auth endpoints (20 req/15min) and AI endpoints (30 req/min)
+- **Auth Required**: `/api/chat`, `/api/generate-image`, `/api/understand-image` all require JWT authentication
+- **JWT Error Logging**: Auth middleware logs JWT verification failures for debugging
+- **Input Validation**: Zod schemas validate conversation create/update payloads
+- **Transaction Safety**: `saveMessages` uses a database transaction to prevent data loss on partial failure
+- **Auth in Streaming**: `lib/stream-chat.ts` sends the auth token with streaming chat requests
+
 ## Dependencies (Notable)
 - stripe - Stripe payment SDK
 - @google/generative-ai - Google Gemini SDK
+- express-rate-limit - Rate limiting middleware
 - react-native-webview - For native HTML previews
 - react-native-reanimated - Animations
 - react-native-keyboard-controller - Keyboard handling
