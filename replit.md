@@ -44,6 +44,12 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - **Optimizer** (cyan) - Page speed, meta tags, CRO, App Store optimization [Pro+]
 - **Cloner** (violet) - Website recreation, design analysis, pixel-perfect rebuilds [Pro+]
 
+## Auth Gate & Access Control
+- **Welcome Screen**: Unauthenticated users see a branded landing page with feature highlights, agent showcase, pricing link, and sign-in/sign-up CTAs
+- **Auth Guard**: All protected screens (chat, projects, templates, billing, command center, profile, project detail) redirect to `/auth` if not logged in, with proper `isLoading` checks to prevent flash-redirects during auth hydration
+- **Public Screens**: Welcome page (index when logged out), pricing, and auth screen are accessible without login
+- **Loading State**: Shows branded splash (wheat emoji + title) while auth state hydrates from AsyncStorage
+
 ## Key Features
 - **Agent Selection**: Home screen shows agents as cards; tap to start a conversation with that agent
 - **Live HTML Preview**: Builder/Code/Designer agents can generate complete web apps rendered in-chat

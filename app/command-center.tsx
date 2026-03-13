@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -58,11 +58,17 @@ interface SecretEntry {
 
 export default function CommandCenterScreen() {
   const insets = useSafeAreaInsets();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const { conversations } = useChat();
   const { status } = useSubscription();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
+
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/auth');
+    }
+  }, [authLoading, isLoggedIn]);
 
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [analytics, setAnalytics] = useState<Analytics | null>(null);

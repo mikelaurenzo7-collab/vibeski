@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
 import { getApiUrl } from '@/lib/query-client';
-import { getAuthToken } from '@/lib/auth-context';
+import { getAuthToken, useAuth } from '@/lib/auth-context';
 import { assembleProjectHtml } from '@/lib/file-parser';
 
 interface ProjectFile {
@@ -56,8 +56,15 @@ export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
+
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/auth');
+    }
+  }, [authLoading, isLoggedIn]);
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('preview');

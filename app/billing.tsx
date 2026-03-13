@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,14 +15,22 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/colors';
 import { useSubscription } from '@/lib/subscription-context';
+import { useAuth } from '@/lib/auth-context';
 import { getTierConfig } from '../shared/subscription';
 
 export default function BillingScreen() {
   const insets = useSafeAreaInsets();
   const { status, openBillingPortal, refreshStatus } = useSubscription();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const tierConfig = getTierConfig(status.tier);
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
+
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/auth');
+    }
+  }, [authLoading, isLoggedIn]);
 
   const isPaid = status.tier !== 'free';
 
