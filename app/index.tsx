@@ -75,7 +75,7 @@ export default function HomeScreen() {
     <View style={[styles.screen, { paddingBottom: webBottomInset }]}>
       <StatusBar style="light" />
       <View style={[styles.header, { paddingTop: (insets.top || webTopInset) + 16 }]}>
-        <Text style={styles.headerLabel}>Field of Dreams</Text>
+        <Text style={styles.headerLabel}>FIELD OF DREAMS</Text>
         <Text style={styles.headerSubtitle}>
           {sortedConversations.length > 0
             ? `${sortedConversations.length} conversation${sortedConversations.length !== 1 ? 's' : ''}`

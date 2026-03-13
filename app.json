@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Field of Dreams",
-    "slug": "field-of-dreams",
+    "name": "FIELDOFDREAMS",
+    "slug": "fieldofdreams",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,10 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.fieldofdreams"
+      "bundleIdentifier": "com.fieldofdreams.app"
     },
     "android": {
-      "package": "com.fieldofdreams",
+      "package": "com.fieldofdreams.app",
       "adaptiveIcon": {
         "backgroundColor": "#1B3A2D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

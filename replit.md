@@ -1,7 +1,7 @@
-# Field of Dreams
+# FIELD OF DREAMS
 
 ## Overview
-Field of Dreams is a premium AI agent platform built as a mobile app with Expo React Native. It features 6 specialized AI agents (Builder, Strategist, Writer, Code, Designer, Analyst), each with unique expertise, personality, and curated prompts. Responses stream in real-time with rich markdown rendering and live HTML previews for generated apps/websites.
+FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo React Native. It features 6 specialized AI agents (Builder, Strategist, Writer, Code, Designer, Analyst), each with unique expertise, personality, and curated prompts. Responses stream in real-time with rich markdown rendering and live HTML previews for generated apps/websites.
 
 ## Architecture
 - **Frontend**: Expo Router (file-based routing), React Native
