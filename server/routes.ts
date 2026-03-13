@@ -1095,12 +1095,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const files = await storage.getProjectFiles(project.id);
       if (files.length === 0) return res.status(400).json({ error: "Project has no files to deploy" });
 
-      const slug = project.slug || project.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .substring(0, 40)
-        + '-' + Date.now().toString(36).slice(-4);
+      let slug = project.slug;
+      if (!slug) {
+        const base = project.name
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .substring(0, 40);
+        slug = base + '-' + Date.now().toString(36).slice(-6);
+        const existing = await storage.getProjectBySlug(slug);
+        if (existing) {
+          slug = base + '-' + Date.now().toString(36).slice(-6) + Math.random().toString(36).slice(-3);
+        }
+      }
 
       const updated = await storage.updateProject(project.id, { status: 'deployed', slug });
 
@@ -1135,7 +1142,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const project = await storage.getProject(parseInt(req.params.id));
       if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
       const versions = await storage.getProjectVersions(project.id);
-      res.json(versions.map(v => ({ ...v, filesSnapshot: undefined, fileCount: JSON.parse(v.filesSnapshot).length })));
+      res.json(versions.map(v => {
+        let fileCount = 0;
+        try { fileCount = JSON.parse(v.filesSnapshot).length; } catch {}
+        return { ...v, filesSnapshot: undefined, fileCount };
+      }));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch versions" });
     }

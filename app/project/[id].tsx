@@ -307,8 +307,8 @@ export default function ProjectDetailScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>{project.name}</Text>
           <View style={[styles.statusBadge, isDeployed ? styles.statusLive : styles.statusDraft]}>
-            <View style={[styles.statusDot, { backgroundColor: isDeployed ? '#28C840' : Colors.warmGrayLight }]} />
-            <Text style={[styles.statusText, { color: isDeployed ? '#28C840' : Colors.warmGrayLight }]}>
+            <View style={[styles.statusDot, { backgroundColor: isDeployed ? Colors.live : Colors.warmGrayLight }]} />
+            <Text style={[styles.statusText, { color: isDeployed ? Colors.live : Colors.warmGrayLight }]}>
               {isDeployed ? 'LIVE' : 'DRAFT'}
             </Text>
           </View>
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#28C840',
+    backgroundColor: Colors.live,
   },
   liveBannerText: {
     fontSize: 12,
@@ -850,19 +850,19 @@ const styles = StyleSheet.create({
   },
   codeEditor: {
     flex: 1,
-    backgroundColor: '#1E1E2E',
+    backgroundColor: Colors.codeBackground,
     padding: 14,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 13,
     lineHeight: 20,
-    color: '#D4D4D4',
+    color: Colors.codeText,
     textAlignVertical: 'top' as const,
   },
   codeText: {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 12,
     lineHeight: 18,
-    color: '#D4D4D4',
+    color: Colors.codeText,
   },
   versionRow: {
     flexDirection: 'row',

@@ -114,6 +114,14 @@ export default function AuthScreen() {
       return;
     }
 
+    if (!isLogin && email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setError('Please enter a valid email address');
+        return;
+      }
+    }
+
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }

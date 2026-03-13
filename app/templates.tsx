@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,15 +26,19 @@ export default function TemplatesScreen() {
 
   const selectedCategory = TEMPLATE_CATEGORIES.find(c => c.id === activeCategory) || TEMPLATE_CATEGORIES[0];
 
-  const handleSelectTemplate = (template: Template) => {
+  const handleSelectTemplate = async (template: Template) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    const convo = createConversation('builder');
-    router.push({
-      pathname: '/chat/[id]',
-      params: { id: convo.id, initialPrompt: template.prompt },
-    });
+    try {
+      const convo = await createConversation('builder');
+      router.push({
+        pathname: '/chat/[id]',
+        params: { id: convo.id, initialPrompt: template.prompt },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to start conversation');
+    }
   };
 
   const handleBack = () => {

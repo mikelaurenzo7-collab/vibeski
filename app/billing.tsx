@@ -76,7 +76,7 @@ export default function BillingScreen() {
   const tierColors: Record<string, string> = {
     free: Colors.warmGray,
     pro: Colors.accent,
-    elite: '#8B5CF6',
+    elite: Colors.premium,
   };
 
   return (

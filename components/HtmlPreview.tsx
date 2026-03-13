@@ -43,9 +43,9 @@ export function HtmlPreview({ html, onOpenPreview }: HtmlPreviewProps) {
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         <View style={styles.dots}>
-          <View style={[styles.dot, { backgroundColor: '#FF5F57' }]} />
-          <View style={[styles.dot, { backgroundColor: '#FEBC2E' }]} />
-          <View style={[styles.dot, { backgroundColor: '#28C840' }]} />
+          <View style={[styles.dot, { backgroundColor: Colors.windowClose }]} />
+          <View style={[styles.dot, { backgroundColor: Colors.windowMinimize }]} />
+          <View style={[styles.dot, { backgroundColor: Colors.windowMaximize }]} />
         </View>
         <Text style={styles.headerText}>Live Preview</Text>
       </View>
