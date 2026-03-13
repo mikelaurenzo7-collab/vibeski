@@ -976,6 +976,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/business-profile", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const settings = await storage.getUserSettings(userId);
+      const profile: Record<string, string> = {};
+      const prefix = 'business_profile_';
+      for (const [key, value] of Object.entries(settings)) {
+        if (key.startsWith(prefix)) {
+          profile[key.slice(prefix.length)] = value;
+        }
+      }
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business profile" });
+    }
+  });
+
+  app.put("/api/business-profile", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const fields = ['companyName', 'industry', 'targetAudience', 'brandVoice', 'techStack', 'competitors', 'website', 'goals'];
+      for (const field of fields) {
+        const value = (req.body[field] || '').toString().trim();
+        await storage.setUserSetting(userId, `business_profile_${field}`, value);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save business profile" });
+    }
+  });
+
   app.get("/api/projects", async (req: Request, res: Response) => {
     try {
       const userId = (req as any).userId;

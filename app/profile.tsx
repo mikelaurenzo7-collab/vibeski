@@ -122,6 +122,17 @@ export default function ProfileScreen() {
                 </Pressable>
                 <View style={styles.menuItemDivider} />
                 <Pressable
+                  onPress={() => router.push('/memory')}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(139, 92, 246, 0.08)' }]}>
+                    <Feather name="database" size={16} color="#8B5CF6" />
+                  </View>
+                  <Text style={styles.menuText}>Memory & Profile</Text>
+                  <Feather name="chevron-right" size={16} color={Colors.warmGrayLight} />
+                </Pressable>
+                <View style={styles.menuItemDivider} />
+                <Pressable
                   onPress={() => router.push('/projects')}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
                 >

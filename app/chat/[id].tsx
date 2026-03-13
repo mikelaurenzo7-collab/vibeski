@@ -25,6 +25,7 @@ import { MessageBubble } from '@/components/MessageBubble';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { ChatInput } from '@/components/ChatInput';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { AgentHandoff } from '@/components/AgentHandoff';
 
 let messageCounter = 0;
 function generateUniqueId(): string {
@@ -379,6 +380,12 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           scrollEnabled={!!messages.length}
         />
+        {!isStreaming && messages.length > 0 && (
+          <AgentHandoff
+            agentId={agent.id}
+            lastMessage={messages[messages.length - 1]?.content || ''}
+          />
+        )}
         <View style={{ paddingBottom: insets.bottom || webBottomInset }}>
           <ChatInput onSend={handleSend} disabled={isStreaming} />
         </View>
