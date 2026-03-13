@@ -43,6 +43,7 @@ export const CREDIT_COSTS: Record<string, number> = {
   'github-finder': 1,
   'seo-optimizer': 3,
   'website-cloner': 3,
+  'qa-tester': 2,
 };
 
 export const PREMIUM_MODEL_MULTIPLIER: Record<string, number> = {

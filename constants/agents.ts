@@ -260,6 +260,24 @@ export const AGENTS: Agent[] = [
     ],
   },
   {
+    id: 'qa-tester',
+    name: 'QA Tester',
+    tagline: 'Tests & validates your apps',
+    icon: 'check-square',
+    color: '#059669',
+    colorLight: 'rgba(5, 150, 105, 0.08)',
+    suggestions: [
+      { label: 'Full QA audit', prompt: 'Run a complete quality assurance audit on my latest project — check accessibility, responsiveness, performance, SEO, and code quality' },
+      { label: 'Accessibility check', prompt: 'Check my app for accessibility issues — ARIA labels, color contrast, keyboard navigation, screen reader compatibility, and alt text' },
+      { label: 'Mobile test', prompt: 'Test my app for mobile responsiveness — check breakpoints, touch targets, font sizes, viewport issues, and scrolling behavior' },
+      { label: 'Performance review', prompt: 'Analyze my app for performance — check image optimization, CSS/JS efficiency, render blocking, lazy loading, and animation performance' },
+    ],
+    handoffs: [
+      { agentId: 'builder', label: 'Fix issues', description: 'Apply the QA fixes automatically' },
+      { agentId: 'seo-optimizer', label: 'Optimize further', description: 'Deep performance optimization' },
+    ],
+  },
+  {
     id: 'seo-optimizer',
     name: 'Optimizer',
     tagline: 'App & page optimization',

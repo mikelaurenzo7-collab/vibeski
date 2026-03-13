@@ -50,7 +50,7 @@ interface ProjectVersion {
   createdAt: string;
 }
 
-type TabType = 'preview' | 'files' | 'versions';
+type TabType = 'preview' | 'files' | 'versions' | 'analytics' | 'forms';
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -96,6 +96,37 @@ export default function ProjectDetailScreen() {
       return res.json();
     },
     enabled: !!id && activeTab === 'versions',
+  });
+
+  const { data: analyticsData } = useQuery<{
+    totalViews: number;
+    deviceBreakdown: Record<string, number>;
+    pageViews: Record<string, number>;
+    dailyViews: Record<string, number>;
+  }>({
+    queryKey: ['/api/projects', id, 'analytics'],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch(new URL(`/api/projects/${id}/analytics`, getApiUrl()).toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { totalViews: 0, deviceBreakdown: {}, pageViews: {}, dailyViews: {} };
+      return res.json();
+    },
+    enabled: !!id && activeTab === 'analytics',
+  });
+
+  const { data: formsData } = useQuery<Record<string, any[]>>({
+    queryKey: ['/api/projects', id, 'forms'],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const res = await fetch(new URL(`/api/projects/${id}/forms`, getApiUrl()).toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: !!id && activeTab === 'forms',
   });
 
   const deployMutation = useMutation({
@@ -351,24 +382,26 @@ export default function ProjectDetailScreen() {
       )}
 
       <View style={styles.toolbar}>
-        <View style={styles.tabs}>
-          {(['preview', 'files', 'versions'] as TabType[]).map(tab => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+          {([
+            { key: 'preview' as TabType, icon: 'eye' as const, label: 'Preview' },
+            { key: 'files' as TabType, icon: 'file-text' as const, label: `Files (${fileCount})` },
+            { key: 'versions' as TabType, icon: 'git-branch' as const, label: `History${versions?.length ? ` (${versions.length})` : ''}` },
+            ...(isDeployed ? [
+              { key: 'analytics' as TabType, icon: 'bar-chart-2' as const, label: 'Analytics' },
+              { key: 'forms' as TabType, icon: 'inbox' as const, label: 'Forms' },
+            ] : []),
+          ]).map(tab => (
             <Pressable
-              key={tab}
-              onPress={() => { setActiveTab(tab); setSelectedFile(null); setIsEditing(false); setEditingContent(null); }}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
+              key={tab.key}
+              onPress={() => { setActiveTab(tab.key); setSelectedFile(null); setIsEditing(false); setEditingContent(null); }}
+              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             >
-              <Feather
-                name={tab === 'preview' ? 'eye' : tab === 'files' ? 'file-text' : 'git-branch'}
-                size={14}
-                color={activeTab === tab ? Colors.accent : Colors.warmGray}
-              />
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {tab === 'preview' ? 'Preview' : tab === 'files' ? `Files (${fileCount})` : `History${versions?.length ? ` (${versions.length})` : ''}`}
-              </Text>
+              <Feather name={tab.icon} size={14} color={activeTab === tab.key ? Colors.accent : Colors.warmGray} />
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
         <View style={styles.toolbarActions}>
           {isDeployed ? (
             <Pressable
@@ -532,7 +565,7 @@ export default function ProjectDetailScreen() {
             />
           )}
         </View>
-      ) : (
+      ) : activeTab === 'versions' ? (
         <View style={styles.filesContainer}>
           <FlatList
             data={versions || []}
@@ -583,7 +616,109 @@ export default function ProjectDetailScreen() {
             }
           />
         </View>
-      )}
+      ) : activeTab === 'analytics' ? (
+        <ScrollView style={styles.filesContainer} contentContainerStyle={{ padding: 12, gap: 12 }}>
+          <View style={styles.analyticsGrid}>
+            <View style={styles.analyticsCard}>
+              <Feather name="eye" size={20} color={Colors.accent} />
+              <Text style={styles.analyticsValue}>{analyticsData?.totalViews || 0}</Text>
+              <Text style={styles.analyticsLabel}>Total Views</Text>
+            </View>
+            <View style={styles.analyticsCard}>
+              <Feather name="smartphone" size={20} color="#EC4899" />
+              <Text style={styles.analyticsValue}>{analyticsData?.deviceBreakdown?.mobile || 0}</Text>
+              <Text style={styles.analyticsLabel}>Mobile</Text>
+            </View>
+            <View style={styles.analyticsCard}>
+              <Feather name="monitor" size={20} color="#0EA5E9" />
+              <Text style={styles.analyticsValue}>{analyticsData?.deviceBreakdown?.desktop || 0}</Text>
+              <Text style={styles.analyticsLabel}>Desktop</Text>
+            </View>
+          </View>
+
+          {analyticsData?.dailyViews && Object.keys(analyticsData.dailyViews).length > 0 ? (
+            <View style={styles.analyticsSection}>
+              <Text style={styles.analyticsSectionTitle}>Daily Views</Text>
+              {Object.entries(analyticsData.dailyViews)
+                .sort(([a], [b]) => b.localeCompare(a))
+                .slice(0, 14)
+                .map(([day, count]) => (
+                  <View key={day} style={styles.analyticsRow}>
+                    <Text style={styles.analyticsRowLabel}>{day}</Text>
+                    <View style={styles.analyticsBar}>
+                      <View style={[styles.analyticsBarFill, { width: `${Math.min(100, (count / Math.max(...Object.values(analyticsData.dailyViews))) * 100)}%` }]} />
+                    </View>
+                    <Text style={styles.analyticsRowValue}>{count}</Text>
+                  </View>
+                ))
+              }
+            </View>
+          ) : (
+            <View style={[styles.center, { paddingTop: 40 }]}>
+              <Feather name="bar-chart-2" size={28} color={Colors.warmGrayLight} />
+              <Text style={styles.nativePreviewText}>No analytics data yet</Text>
+              <Text style={[styles.fileMeta, { textAlign: 'center' as const, marginTop: 4 }]}>
+                Analytics are tracked automatically when visitors view your deployed site
+              </Text>
+            </View>
+          )}
+
+          {analyticsData?.pageViews && Object.keys(analyticsData.pageViews).length > 0 && (
+            <View style={styles.analyticsSection}>
+              <Text style={styles.analyticsSectionTitle}>Top Pages</Text>
+              {Object.entries(analyticsData.pageViews)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 10)
+                .map(([page, count]) => (
+                  <View key={page} style={styles.analyticsRow}>
+                    <Text style={[styles.analyticsRowLabel, { flex: 1 }]} numberOfLines={1}>{page}</Text>
+                    <Text style={styles.analyticsRowValue}>{count} views</Text>
+                  </View>
+                ))
+              }
+            </View>
+          )}
+        </ScrollView>
+      ) : activeTab === 'forms' ? (
+        <ScrollView style={styles.filesContainer} contentContainerStyle={{ padding: 12, gap: 12 }}>
+          {formsData && Object.keys(formsData).length > 0 ? (
+            Object.entries(formsData).map(([formName, submissions]) => (
+              <View key={formName} style={styles.analyticsSection}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={styles.analyticsSectionTitle}>{formName}</Text>
+                  <View style={styles.formCountBadge}>
+                    <Text style={styles.formCountText}>{submissions.length}</Text>
+                  </View>
+                </View>
+                {submissions.slice(0, 20).map((sub: any, idx: number) => (
+                  <View key={sub.id || idx} style={styles.formSubmission}>
+                    {Object.entries(sub)
+                      .filter(([k]) => !k.startsWith('_') && k !== 'id')
+                      .map(([key, val]) => (
+                        <View key={key} style={styles.formField}>
+                          <Text style={styles.formFieldLabel}>{key}</Text>
+                          <Text style={styles.formFieldValue} numberOfLines={3}>{String(val)}</Text>
+                        </View>
+                      ))
+                    }
+                    {sub._submittedAt && (
+                      <Text style={styles.formTimestamp}>{new Date(sub._submittedAt).toLocaleString()}</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            ))
+          ) : (
+            <View style={[styles.center, { paddingTop: 40 }]}>
+              <Feather name="inbox" size={28} color={Colors.warmGrayLight} />
+              <Text style={styles.nativePreviewText}>No form submissions yet</Text>
+              <Text style={[styles.fileMeta, { textAlign: 'center' as const, marginTop: 4 }]}>
+                Form submissions from your deployed site will appear here automatically
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -947,5 +1082,116 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.white,
+  },
+  analyticsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  analyticsCard: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    padding: 16,
+    alignItems: 'center',
+    gap: 6,
+  },
+  analyticsValue: {
+    fontSize: 28,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    letterSpacing: -0.5,
+  },
+  analyticsLabel: {
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.warmGray,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  analyticsSection: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    padding: 16,
+    gap: 10,
+  },
+  analyticsSectionTitle: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    marginBottom: 4,
+  },
+  analyticsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  analyticsRowLabel: {
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.warmGray,
+    width: 90,
+  },
+  analyticsBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: Colors.creamDark,
+    borderRadius: 4,
+    overflow: 'hidden' as const,
+  },
+  analyticsBarFill: {
+    height: '100%' as any,
+    backgroundColor: Colors.accent,
+    borderRadius: 4,
+  },
+  analyticsRowValue: {
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    minWidth: 30,
+    textAlign: 'right' as const,
+  },
+  formCountBadge: {
+    backgroundColor: Colors.accentSubtle,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  formCountText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.accent,
+  },
+  formSubmission: {
+    backgroundColor: Colors.cream,
+    borderRadius: 10,
+    padding: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  formField: {
+    gap: 2,
+  },
+  formFieldLabel: {
+    fontSize: 10,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.warmGray,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  formFieldValue: {
+    fontSize: 13,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.black,
+  },
+  formTimestamp: {
+    fontSize: 10,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGrayLight,
+    marginTop: 4,
   },
 });
