@@ -427,6 +427,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/generate-image", async (req, res) => {
+    try {
+      const { prompt, sourceImage } = req.body;
+
+      if (!prompt || typeof prompt !== "string") {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+
+      if (prompt.length > 2000) {
+        return res.status(400).json({ error: "Prompt too long (max 2000 chars)" });
+      }
+
+      const base64Image = await grokProvider.generateImage(
+        prompt,
+        sourceImage || undefined
+      );
+
+      res.json({ image: base64Image });
+    } catch (error: any) {
+      console.error("Image generation error:", error);
+      const message = error?.message?.includes("403")
+        ? "Image generation is not available — check your Grok API credits"
+        : "Failed to generate image";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/understand-image", async (req, res) => {
+    try {
+      const { imageUrl, imageBase64, question } = req.body;
+
+      if (!question || typeof question !== "string") {
+        return res.status(400).json({ error: "Question is required" });
+      }
+      if (!imageUrl && !imageBase64) {
+        return res.status(400).json({ error: "Image URL or base64 data is required" });
+      }
+
+      const imageContent: any = {
+        type: "image_url",
+        image_url: {
+          url: imageUrl || `data:image/png;base64,${imageBase64}`,
+          detail: "high",
+        },
+      };
+
+      const messages = [
+        {
+          role: "user" as const,
+          content: [
+            imageContent,
+            { type: "text", text: question },
+          ],
+        },
+      ];
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      let aborted = false;
+      req.on("close", () => { aborted = true; });
+
+      try {
+        for await (const chunk of grokProvider.sendMessageWithVision(
+          messages,
+          "You are a helpful visual analyst. Describe what you see accurately and in detail."
+        )) {
+          if (aborted) break;
+          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+        }
+      } catch (visionError: any) {
+        console.error("Vision error:", visionError);
+        if (!aborted) {
+          res.write(`data: ${JSON.stringify({ error: "Vision analysis failed" })}\n\n`);
+        }
+      }
+
+      if (!aborted) {
+        res.write("data: [DONE]\n\n");
+        res.end();
+      }
+    } catch (error) {
+      console.error("Image understanding error:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: "An error occurred" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: "Failed to analyze image" });
+      }
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
