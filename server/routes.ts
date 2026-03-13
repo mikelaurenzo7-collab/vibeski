@@ -11,16 +11,18 @@ import {
   hashPassword,
   comparePassword,
 } from "./auth";
-import { GrokProvider, ClaudeProvider, getProviderForAgent } from "./models";
+import { GrokProvider, OpenAIProvider, getProviderForAgent } from "./models";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-// Multi-model providers
 const grokProvider = new GrokProvider(process.env.GROK_API_KEY || '');
-const claudeProvider = new ClaudeProvider(process.env.CLAUDE_API_KEY || '');
+const raptorProvider = new OpenAIProvider(
+  process.env.AI_INTEGRATIONS_OPENAI_API_KEY || '',
+  process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+);
 
 const SHARED_FORMAT_RULES = `
 FORMATTING RULES:
@@ -343,9 +345,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? AGENT_PROMPTS[agentId]
         : DEFAULT_PROMPT;
 
-      // Multi-model routing: Grok for creative, Claude for analytical
+      // Multi-model routing: Grok for creative, Raptor for analytical/code
       const providerType = getProviderForAgent(agentId || 'builder');
-      const provider = providerType === 'grok' ? grokProvider : claudeProvider;
+      const provider = providerType === 'grok' ? grokProvider : raptorProvider;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
