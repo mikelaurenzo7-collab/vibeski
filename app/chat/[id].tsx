@@ -227,7 +227,7 @@ export default function ChatScreen() {
             return updated;
           });
         }
-      }, agent.id);
+      }, agent.id, id);
 
       refreshStatus();
 
