@@ -1,12 +1,12 @@
 # FIELD OF DREAMS
 
 ## Overview
-FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo React Native. It features 6 specialized AI agents (Builder, Strategist, Writer, Code, Designer, Analyst), each powered by cutting-edge multi-model AI (Grok + Claude), streaming responses in real-time with rich markdown rendering and live HTML previews for generated apps/websites.
+FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo React Native. It features 6 specialized AI agents (Builder, Strategist, Writer, Code, Designer, Analyst), powered by a multi-model AI architecture (Raptor primary, Gemini fallback), streaming responses in real-time with rich markdown rendering and live HTML previews for generated apps/websites.
 
 ## Architecture
 - **Frontend**: Expo Router (file-based routing), React Native
 - **Backend**: Express.js server on port 5000
-- **AI**: Multi-model: Grok (xAI) for creative agents, Claude 3.5 Haiku (Anthropic) for analytical agents
+- **AI**: Multi-model: Raptor (gpt-4.1-mini) primary, Gemini (gemini-2.5-flash) fallback
 - **State**: AsyncStorage for conversation persistence, React Context for shared state
 - **Font**: DM Sans (Google Fonts)
 - **Rich Rendering**: Custom markdown parser, HTML preview via iframe/WebView
@@ -17,23 +17,22 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - **Pro ($19/mo)**: 100 generations/day, all 6 agents, 16K tokens, HTML live previews
 - **Elite ($49/mo)**: Unlimited generations, all 6 agents, 16K tokens, priority support
 
-## Multi-Model Strategy (Wacky + Future-Proof)
-- **Creative Agents** (Builder, Writer, Designer, Strategist) → **Grok (xAI)** — irreverent, boundary-pushing, real-time web knowledge
-- **Analytical Agents** (Code, Analyst) → **Claude 3.5 Haiku (Anthropic)** — precise, reliable code generation, keeps Grok in check
-
-This dual-model approach is genuinely unique: no competitor uses model diversity to create different agent personalities.
+## Multi-Model Strategy
+- **Primary**: Raptor (gpt-4.1-mini via Replit AI Integrations) — fast, reliable, great for all agent types
+- **Fallback**: Gemini (gemini-2.5-flash via Google API) — automatic failover if Raptor is unavailable
+- Streaming is handled inline in routes.ts using dynamic imports for each provider
+- The `for await` pattern works correctly with direct SDK stream objects in Express handlers
 
 ## Built-in Agents
-- **Builder** (green, Grok) - Creates apps, sites & tools with live HTML previews [Free]
-- **Strategist** (purple, Grok) - Business plans, growth strategy, competitive analysis [Pro+]
-- **Writer** (orange, Grok) - Content creation, copywriting, storytelling [Free]
-- **Code** (blue, Claude) - Programming, debugging, system architecture [Pro+]
-- **Designer** (pink, Grok) - UI/UX, branding, visual design [Pro+]
-- **Analyst** (teal, Claude) - Research, data analysis, market insights [Pro+]
+- **Builder** (green) - Creates apps, sites & tools with live HTML previews [Free]
+- **Strategist** (purple) - Business plans, growth strategy, competitive analysis [Pro+]
+- **Writer** (orange) - Content creation, copywriting, storytelling [Free]
+- **Code** (blue) - Programming, debugging, system architecture [Pro+]
+- **Designer** (pink) - UI/UX, branding, visual design [Pro+]
+- **Analyst** (teal) - Research, data analysis, market insights [Pro+]
 
 ## Key Features
 - **Agent Selection**: Home screen shows agents as cards; tap to start a conversation with that agent
-- **Multi-Model Routing**: Different agents powered by different AI models for personality diversity
 - **Live HTML Preview**: Builder/Code/Designer agents can generate complete web apps rendered in-chat
 - **Full-Screen App Preview**: Dedicated preview screen with device frame options (phone, tablet, desktop), landscape rotation, View Source toggle, and share button
 - **Iterative Editing**: Edit button on preview navigates back to chat with context preserved for follow-up modifications
@@ -68,9 +67,9 @@ This dual-model approach is genuinely unique: no competitor uses model diversity
 - `lib/subscription-context.tsx` - Subscription state (device ID, status, checkout, portal)
 - `lib/stream-chat.ts` - SSE streaming client (passes agent system prompt, device ID)
 - `lib/query-client.ts` - React Query client and API helpers
-- `server/routes.ts` - Express API with /api/chat (multi-model routing), auth, conversations, elite design system prompts, subscription endpoints
+- `server/routes.ts` - Express API with /api/chat (Raptor+Gemini inline streaming), auth, conversations, subscription endpoints
 - `server/auth.ts` - JWT middleware, password hashing utilities
-- `server/models.ts` - Grok + Claude provider implementations with streaming
+- `server/models.ts` - Provider type definitions (minimal, streaming is inline in routes)
 - `server/subscription.ts` - Server-side subscription & usage management, Stripe integration
 - `server/storage.ts` - Database storage layer (Drizzle ORM)
 - `server/db.ts` - Database connection (PostgreSQL pool)
@@ -89,7 +88,6 @@ This dual-model approach is genuinely unique: no competitor uses model diversity
 - `POST /api/subscription/portal` - Create Stripe billing portal session
 - `POST /api/subscription/webhook` - Stripe webhook handler
 
-
 ## Color Theme
 - Primary: #162E23 (deep forest green)
 - Accent: #C9A24E (golden amber)
@@ -97,35 +95,27 @@ This dual-model approach is genuinely unique: no competitor uses model diversity
 - Each agent has its own color accent
 
 ## Environment Variables
-- `GROK_API_KEY` - xAI Grok API key (creative agents, with auto-fallback to Raptor)
-- `AI_INTEGRATIONS_OPENAI_API_KEY` / `AI_INTEGRATIONS_OPENAI_BASE_URL` - Raptor model (analytical agents + fallback)
+- `AI_INTEGRATIONS_OPENAI_API_KEY` / `AI_INTEGRATIONS_OPENAI_BASE_URL` - Raptor model (primary, via Replit AI Integrations)
+- `GOOGLE_API_KEY` - Google Gemini API key (fallback)
 - `DATABASE_URL` - PostgreSQL connection string (auto-managed by Replit)
 - `JWT_SECRET` - JWT signing secret (required in production, dev fallback provided)
+- `SESSION_SECRET` - Session management
+- `STRIPE_SECRET_KEY` - Stripe API key (required for payment features)
+- `STRIPE_PRO_PRICE_ID` - Stripe price ID for Pro tier
+- `STRIPE_ELITE_PRICE_ID` - Stripe price ID for Elite tier
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
 
 ## Workflows
 - `Start Backend` - Express server (port 5000)
 - `Start Frontend` - Expo dev server (port 8081)
 
-## Competitive Advantage
-Multi-model agent specialization is genuinely unique:
-- Different AI models power different agents
-- Creates authentic personality diversity, not just prompt variation
-- Grok's creativity + Claude's precision = best of both worlds
-- Future-proof: can easily swap models as new ones emerge
-- Hard to replicate at scale
-
-## Environment
-- GROK_API_KEY - xAI Grok API key
-- CLAUDE_API_KEY - Anthropic Claude API key
-- AI_INTEGRATIONS_OPENAI_API_KEY / AI_INTEGRATIONS_OPENAI_BASE_URL - OpenAI via Replit
-- SESSION_SECRET - Session management
-- STRIPE_SECRET_KEY - Stripe API key (required for payment features)
-- STRIPE_PRO_PRICE_ID - Stripe price ID for Pro tier
-- STRIPE_ELITE_PRICE_ID - Stripe price ID for Elite tier
-- STRIPE_WEBHOOK_SECRET - Stripe webhook signing secret
+## Technical Notes
+- SSE streaming in Express: Uses inline `for await` directly on OpenAI/Gemini SDK stream objects. Wrapping streams in separate async generator classes causes buffering issues in Express POST handlers — keep streaming logic inline.
+- CORS: Allows `Content-Type`, `Authorization`, and `x-device-id` headers
 
 ## Dependencies (Notable)
 - stripe - Stripe payment SDK
+- @google/generative-ai - Google Gemini SDK
 - react-native-webview - For native HTML previews
 - react-native-reanimated - Animations
 - react-native-keyboard-controller - Keyboard handling
