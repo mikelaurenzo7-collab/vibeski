@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, like } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users,
@@ -298,14 +298,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(projectData)
       .where(and(eq(projectData.projectId, projectId), eq(projectData.collection, collection)))
-      .orderBy(projectData.createdAt);
-  }
-
-  async getProjectDataByPrefix(projectId: number, prefix: string): Promise<ProjectDataRow[]> {
-    return db
-      .select()
-      .from(projectData)
-      .where(and(eq(projectData.projectId, projectId), like(projectData.collection, `${prefix}%`)))
       .orderBy(projectData.createdAt);
   }
 

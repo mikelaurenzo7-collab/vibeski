@@ -515,16 +515,6 @@ export default function CommandCenterScreen() {
       { id: 'analytics', name: 'Google Analytics', description: 'Track usage analytics', icon: 'activity' as const, color: '#E37400', connected: !!settings.integration_analytics },
     ];
 
-    const connectors = [
-      { id: 'google-sheets', name: 'Google Sheets', description: 'Read and write spreadsheet data in your apps', icon: 'grid' as const, color: '#0F9D58', status: 'available' as const },
-      { id: 'stripe', name: 'Stripe', description: 'Accept payments in your deployed apps', icon: 'credit-card' as const, color: '#635BFF', status: 'available' as const },
-      { id: 'google-calendar', name: 'Google Calendar', description: 'Manage events and scheduling', icon: 'calendar' as const, color: '#4285F4', status: 'coming_soon' as const },
-      { id: 'sendgrid', name: 'SendGrid', description: 'Send transactional emails from your apps', icon: 'mail' as const, color: '#1A82E2', status: 'coming_soon' as const },
-      { id: 'airtable', name: 'Airtable', description: 'Connect to Airtable bases as a data source', icon: 'database' as const, color: '#18BFFF', status: 'coming_soon' as const },
-      { id: 'supabase', name: 'Supabase', description: 'Full backend with auth and database', icon: 'server' as const, color: '#3ECF8E', status: 'coming_soon' as const },
-      { id: 'shopify', name: 'Shopify', description: 'E-commerce product and order data', icon: 'shopping-cart' as const, color: '#96BF48', status: 'coming_soon' as const },
-    ];
-
     return (
       <View style={styles.tabContent}>
         <View style={styles.sectionBlock}>
@@ -549,31 +539,6 @@ export default function CommandCenterScreen() {
               </View>
               <View style={[styles.statusDot, integration.connected ? styles.statusConnected : styles.statusDisconnected]} />
             </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.sectionBlock}>
-          <Text style={styles.sectionLabel}>APP CONNECTORS</Text>
-          <Text style={styles.sectionDescription}>
-            Connect third-party APIs to use inside your deployed apps.
-          </Text>
-          {connectors.map((connector) => (
-            <View key={connector.id} style={styles.integrationCard}>
-              <View style={[styles.integrationIcon, { backgroundColor: `${connector.color}12` }]}>
-                <Feather name={connector.icon} size={20} color={connector.color} />
-              </View>
-              <View style={styles.integrationInfo}>
-                <Text style={styles.integrationName}>{connector.name}</Text>
-                <Text style={styles.integrationDesc}>{connector.description}</Text>
-              </View>
-              {connector.status === 'coming_soon' ? (
-                <View style={styles.comingSoonBadge}>
-                  <Text style={styles.comingSoonText}>SOON</Text>
-                </View>
-              ) : (
-                <View style={[styles.statusDot, styles.statusConnected]} />
-              )}
-            </View>
           ))}
         </View>
       </View>
@@ -1153,18 +1118,6 @@ const styles = StyleSheet.create({
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusConnected: { backgroundColor: Colors.success },
   statusDisconnected: { backgroundColor: Colors.divider },
-  comingSoonBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  comingSoonText: {
-    fontSize: 9,
-    fontFamily: 'DMSans_700Bold',
-    color: '#7C3AED',
-    letterSpacing: 0.5,
-  },
   settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
   settingInfo: { flex: 1 },
   settingTitle: { fontSize: 15, fontFamily: 'DMSans_500Medium', color: Colors.black },
