@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/lib/auth-context";
 import { ChatProvider } from "@/lib/chat-context";
 import { SubscriptionProvider } from "@/lib/subscription-context";
+import { ModelProvider } from "@/lib/model-context";
 import {
   useFonts,
   DMSans_400Regular,
