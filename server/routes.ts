@@ -90,20 +90,67 @@ DATA PERSISTENCE — when the app needs to save/load data:
 - Generate a unique key for each item using Date.now().toString(36) + Math.random().toString(36).substr(2)
 - Example: fetch('/api/data/todos').then(r => r.json()).then(data => renderTodos(data))
 
+CDN LIBRARIES AVAILABLE (include via <script> or <link> tags in HTML):
+- Tailwind CSS: <script src="https://cdn.tailwindcss.com"></script> — use for rapid utility-class styling
+- Chart.js: <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script> — use for charts, graphs, analytics
+- Three.js: <script src="https://cdn.jsdelivr.net/npm/three@0.160/build/three.min.js"></script> — for 3D graphics
+- GSAP: <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script> — for advanced animations
+- Marked.js: <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> — for markdown rendering
+- DOMPurify: <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script> — for HTML sanitization
+- Lucide Icons: <script src="https://unpkg.com/lucide@latest"></script> — for beautiful SVG icons
+- SortableJS: <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script> — for drag & drop
+- Day.js: <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script> — for date handling
+- html2canvas: <script src="https://cdn.jsdelivr.net/npm/html2canvas@1/dist/html2canvas.min.js"></script> — for screenshots
+- Use these proactively when they enhance the app. Choose the right tool for the job.
+
+MULTI-PAGE APPS — when building apps with multiple views:
+- Use hash-based routing: window.location.hash for navigation
+- Create a simple router: listen to 'hashchange' event, show/hide sections based on hash
+- Include a navigation bar/sidebar with links using href="#page-name"
+- Each page/view should be a <section> or <div> with a data-page attribute
+- Router pattern:
+  function navigateTo(page) { window.location.hash = page; }
+  window.addEventListener('hashchange', () => { showPage(location.hash.slice(1) || 'home'); });
+- Support back/forward browser navigation automatically
+
+DARK MODE SUPPORT:
+- Always include a dark mode toggle when appropriate
+- Use CSS custom properties for ALL colors (--bg, --surface, --text, --border, etc.)
+- Define both light and dark theme variables:
+  [data-theme="dark"] { --bg: #0F172A; --surface: #1E293B; --text: #F1F5F9; ... }
+- Toggle via: document.documentElement.setAttribute('data-theme', theme)
+- Persist preference: localStorage.setItem('theme', theme)
+- Auto-detect: window.matchMedia('(prefers-color-scheme: dark)').matches
+
+LOCAL STORAGE HELPERS:
+- Use localStorage for client-side persistence (settings, preferences, drafts, history)
+- Always wrap in try/catch for private browsing compatibility
+- Use JSON.parse/stringify for objects: JSON.parse(localStorage.getItem('key') || '{}')
+
 ELITE DESIGN STANDARDS (mandatory for every generated app):
-1. Typography: Include Google Fonts via CDN (Inter, Plus Jakarta Sans, or DM Sans). Use a proper type scale with font-weight variation (300-700). Apply letter-spacing (-0.02em for headings, 0.01em for body).
-2. Color System: Use a cohesive palette with CSS custom properties (--primary, --accent, --surface, --text, etc.). Include subtle gradient backgrounds. Never use raw hex colors inline — define them as variables.
-3. Layout: Use CSS Grid and Flexbox for all layouts. Implement proper spacing with a consistent scale (4px base). Add max-width containers for readability. Ensure full responsiveness with mobile-first media queries.
-4. Visual Polish: Add glassmorphism effects (backdrop-filter: blur, semi-transparent backgrounds). Use box-shadow with multiple layers for depth. Include border-radius (12-20px for cards, 8-12px for buttons). Add subtle border colors using rgba().
-5. Animations: Include smooth CSS transitions (0.2-0.3s ease) on all interactive elements. Add hover states with transform: translateY(-2px) and shadow changes. Use @keyframes for entrance animations (fadeIn, slideUp). Include transition on color, background, shadow, transform.
-6. Responsive Design: Mobile-first with breakpoints at 640px, 768px, 1024px, 1280px. Fluid typography with clamp(). Responsive grid that collapses gracefully. Touch-friendly tap targets (min 44px).
-7. Meta & Structure: Include proper <meta> viewport, charset, description, and theme-color tags. Add a <title>. Include a favicon using an emoji via SVG data URI. Structure HTML semantically (header, main, section, footer).
-8. Interactivity: Add JavaScript for dynamic behaviors — tabs, modals, toggles, counters, animations. Use smooth scrolling. Include loading states and micro-interactions.
-9. Mock Data: Populate with realistic, professional content — real-sounding names, plausible numbers, proper imagery using gradient placeholders or emoji icons.
-10. Multi-view: When appropriate, create multi-section or multi-page apps with tab/nav based navigation between views.
+1. Typography: Include Google Fonts via CDN (Inter, Plus Jakarta Sans, DM Sans, Space Grotesk, or Satoshi). Use a proper type scale with font-weight variation (300-700). Apply letter-spacing (-0.02em for headings, 0.01em for body). Use clamp() for fluid sizing.
+2. Color System: Use a cohesive palette with CSS custom properties (--primary, --accent, --surface, --text, --border, etc.). Include subtle gradient backgrounds and gradient text for hero headings. Never use raw hex colors inline — define them as variables. Support light/dark themes.
+3. Layout: Use CSS Grid and Flexbox for all layouts. Implement proper spacing with a consistent scale (4px base). Add max-width containers for readability. Ensure full responsiveness with mobile-first media queries. Use CSS container queries when appropriate.
+4. Visual Polish: Add glassmorphism effects (backdrop-filter: blur, semi-transparent backgrounds). Use box-shadow with multiple layers for depth. Include border-radius (12-20px for cards, 8-12px for buttons). Add subtle border colors using rgba(). Use mesh gradients for backgrounds.
+5. Animations: Include smooth CSS transitions (0.2-0.3s ease) on all interactive elements. Add hover states with transform: translateY(-2px) and shadow changes. Use @keyframes for entrance animations (fadeIn, slideUp, scaleIn). Include scroll-triggered animations using IntersectionObserver. Add skeleton loaders for loading states. Use CSS animation-delay for staggered reveals.
+6. Responsive Design: Mobile-first with breakpoints at 640px, 768px, 1024px, 1280px. Fluid typography with clamp(). Responsive grid that collapses gracefully. Touch-friendly tap targets (min 44px). Test at 375px (mobile), 768px (tablet), 1280px (desktop).
+7. Meta & Structure: Include proper <meta> viewport, charset, description, and theme-color tags. Add a <title>. Include a favicon using an emoji via SVG data URI. Structure HTML semantically (header, main, section, footer). Add Open Graph meta tags. Include print stylesheet.
+8. Interactivity: Add JavaScript for dynamic behaviors — tabs, modals, toggles, counters, animations, drag & drop. Use smooth scrolling. Include loading states and micro-interactions. Add keyboard shortcuts for power users. Implement toast notifications for feedback.
+9. Mock Data: Populate with realistic, professional content — real-sounding names, plausible numbers. Use gradient placeholders, emoji icons, or Lucide icons. Generate 10-20 items of sample data. Include realistic dates, prices, and metrics.
+10. Multi-view: Create multi-section or multi-page apps with tab/nav/sidebar navigation. Use hash-based routing for SPAs. Include a responsive sidebar that collapses to hamburger on mobile. Add breadcrumbs for nested navigation.
+11. Advanced Patterns: Include search/filter functionality on data lists. Add sorting capabilities. Implement pagination or infinite scroll. Use modals/dialogs for forms and confirmations. Add export functionality (CSV, PDF via print). Include keyboard navigation and focus management.
+12. Performance: Lazy load images with loading="lazy". Debounce search inputs. Use requestAnimationFrame for smooth animations. Minimize DOM manipulation with document fragments.
+
+WHEN USER ASKS FOR MODIFICATIONS:
+- Preserve ALL existing code and functionality
+- Only modify exactly what was requested
+- Maintain all existing styles, animations, data, and interactivity
+- If adding a feature, integrate it naturally with the existing design
+- Always return the COMPLETE updated project with ALL files (even unchanged ones)
 
 - NEVER return just code snippets or partial code — always return a COMPLETE working project
-- The generated app should feel like a polished product, not a prototype`;
+- The generated app should feel like a polished product, not a prototype
+- Every app should feel like it was built by a senior designer + developer team`;
 
 
 const AGENT_PROMPTS: Record<string, string> = {
@@ -999,6 +1046,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updated = await storage.updateProject(project.id, updates);
 
       if (files && Array.isArray(files)) {
+        const existingFiles = await storage.getProjectFiles(project.id);
+        if (existingFiles.length > 0) {
+          storage.saveProjectVersion(project.id, 'Auto-save before update').catch(() => {});
+        }
         await storage.saveProjectFiles(
           project.id,
           files.map((f: any) => ({
@@ -1069,6 +1120,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to undeploy project" });
+    }
+  });
+
+  app.get("/api/projects/:id/versions", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      const versions = await storage.getProjectVersions(project.id);
+      res.json(versions.map(v => ({ ...v, filesSnapshot: undefined, fileCount: JSON.parse(v.filesSnapshot).length })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch versions" });
+    }
+  });
+
+  app.post("/api/projects/:id/versions/:versionId/restore", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      await storage.saveProjectVersion(project.id, 'Before restore');
+      const restored = await storage.restoreProjectVersion(project.id, parseInt(req.params.versionId));
+      if (!restored) return res.status(404).json({ error: "Version not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to restore version" });
+    }
+  });
+
+  app.post("/api/projects/:id/fork", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      const forked = await storage.forkProject(project.id, userId);
+      if (!forked) return res.status(500).json({ error: "Fork failed" });
+      res.status(201).json(forked);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fork project" });
+    }
+  });
+
+  app.get("/api/projects/:id/export", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      const files = await storage.getProjectFiles(project.id);
+      res.json({ projectName: project.name, files: files.map(f => ({ path: f.filePath, content: f.content, type: f.fileType })) });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to export project" });
+    }
+  });
+
+  app.post("/api/projects/:id/save-files", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      const { files } = req.body;
+      if (!files || !Array.isArray(files)) return res.status(400).json({ error: "Files array required" });
+      await storage.saveProjectVersion(project.id, 'Before edit');
+      await storage.saveProjectFiles(project.id, files.map((f: any) => ({ filePath: f.filePath, content: f.content, fileType: f.fileType })));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save files" });
+    }
+  });
+
+  const PROJECT_TEMPLATES = [
+    { id: 'saas-landing', name: 'SaaS Landing Page', description: 'Modern landing page with hero, features, pricing, and CTA sections', category: 'Landing Pages', icon: '🚀' },
+    { id: 'portfolio', name: 'Portfolio Website', description: 'Personal portfolio with about, projects, skills, and contact sections', category: 'Portfolios', icon: '🎨' },
+    { id: 'dashboard', name: 'Analytics Dashboard', description: 'Data dashboard with charts, KPI cards, tables, and filters', category: 'Dashboards', icon: '📊' },
+    { id: 'ecommerce', name: 'E-Commerce Store', description: 'Product catalog with cart, search, filters, and checkout flow', category: 'Storefronts', icon: '🛒' },
+    { id: 'blog', name: 'Blog Platform', description: 'Blog with post list, single post view, categories, and search', category: 'Content', icon: '📝' },
+    { id: 'todo-app', name: 'Task Manager', description: 'Kanban board with drag & drop, categories, priorities, and data persistence', category: 'Tools', icon: '✅' },
+    { id: 'crm', name: 'CRM Dashboard', description: 'Customer management with contacts, deals pipeline, activity feed', category: 'Dashboards', icon: '👥' },
+    { id: 'restaurant', name: 'Restaurant Website', description: 'Restaurant site with menu, reservations, gallery, and reviews', category: 'Landing Pages', icon: '🍽️' },
+    { id: 'social-feed', name: 'Social Feed App', description: 'Social media feed with posts, likes, comments, and user profiles', category: 'Tools', icon: '💬' },
+    { id: 'weather-app', name: 'Weather Dashboard', description: 'Weather app with current conditions, forecast, and location search', category: 'Tools', icon: '🌤️' },
+    { id: 'quiz-game', name: 'Quiz Game', description: 'Interactive quiz with score tracking, timer, leaderboard, categories', category: 'Games', icon: '🎮' },
+    { id: 'invoice', name: 'Invoice Generator', description: 'Create and manage invoices with line items, tax, and PDF export', category: 'Tools', icon: '🧾' },
+  ];
+
+  app.get("/api/project-templates", (_req: Request, res: Response) => {
+    res.json(PROJECT_TEMPLATES);
+  });
+
+  app.post("/api/project-templates/:templateId/use", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const template = PROJECT_TEMPLATES.find(t => t.id === req.params.templateId);
+      if (!template) return res.status(404).json({ error: "Template not found" });
+      const project = await storage.createProject({
+        userId,
+        name: template.name,
+        description: template.description,
+      });
+      res.status(201).json({ project, templatePrompt: `Build me a ${template.name}: ${template.description}. Make it production-quality with dark mode, responsive design, animations, and realistic sample data.` });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create from template" });
     }
   });
 

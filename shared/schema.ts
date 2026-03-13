@@ -69,6 +69,15 @@ export const projectData = pgTable("project_data", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+export const projectVersions = pgTable("project_versions", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  filesSnapshot: text("files_snapshot").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 export const userMemories = pgTable("user_memories", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -124,5 +133,6 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Project = typeof projects.$inferSelect;
 export type ProjectFile = typeof projectFiles.$inferSelect;
 export type ProjectDataRow = typeof projectData.$inferSelect;
+export type ProjectVersion = typeof projectVersions.$inferSelect;
 export type UserMemory = typeof userMemories.$inferSelect;
 export type ConversationSummary = typeof conversationSummaries.$inferSelect;
