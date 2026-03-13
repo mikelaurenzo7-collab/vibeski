@@ -11,11 +11,16 @@ import {
   hashPassword,
   comparePassword,
 } from "./auth";
+import { GrokProvider, ClaudeProvider, getProviderForAgent } from "./models";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+// Multi-model providers
+const grokProvider = new GrokProvider(process.env.GROK_API_KEY || '');
+const claudeProvider = new ClaudeProvider(process.env.CLAUDE_API_KEY || '');
 
 const SHARED_FORMAT_RULES = `
 FORMATTING RULES:
@@ -338,26 +343,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? AGENT_PROMPTS[agentId]
         : DEFAULT_PROMPT;
 
+      // Multi-model routing: Grok for creative, Claude for analytical
+      const providerType = getProviderForAgent(agentId || 'builder');
+      const provider = providerType === 'grok' ? grokProvider : claudeProvider;
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("X-Accel-Buffering", "no");
       res.flushHeaders();
 
-      const stream = await openai.chat.completions.create({
-        model: "gpt-5.2",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...sanitized,
-        ],
-        stream: true,
-        max_completion_tokens: 16384,
-      });
-
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      try {
+        for await (const chunk of provider.sendMessage(sanitized, systemPrompt)) {
+          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
+      } catch (error) {
+        console.error("Provider error:", error);
+        res.write(`data: ${JSON.stringify({ error: "Model error" })}\n\n`);
       }
 
       res.write("data: [DONE]\n\n");
