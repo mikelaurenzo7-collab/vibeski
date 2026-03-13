@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,13 +16,21 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/colors';
 import { TEMPLATE_CATEGORIES, type TemplateCategory, type Template } from '@/constants/templates';
 import { useChat } from '@/lib/chat-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function TemplatesScreen() {
   const insets = useSafeAreaInsets();
   const { createConversation } = useChat();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
   const [activeCategory, setActiveCategory] = useState<string>(TEMPLATE_CATEGORIES[0].id);
+
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/auth');
+    }
+  }, [authLoading, isLoggedIn]);
 
   const selectedCategory = TEMPLATE_CATEGORIES.find(c => c.id === activeCategory) || TEMPLATE_CATEGORIES[0];
 

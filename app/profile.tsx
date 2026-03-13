@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,10 +19,16 @@ import { useChat } from '@/lib/chat-context';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading, logout } = useAuth();
   const { conversations } = useChat();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
+
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/auth');
+    }
+  }, [authLoading, isLoggedIn]);
 
   const handleBack = () => {
     if (Platform.OS !== 'web') {

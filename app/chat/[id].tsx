@@ -41,6 +41,12 @@ export default function ChatScreen() {
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/auth');
+    }
+  }, [isLoggedIn, authLoading]);
+
   const conversation = useMemo(() => conversations.find(c => c.id === id), [conversations, id]);
   const agent = getAgent(conversation?.agentId || 'builder');
   const [messages, setMessages] = useState<Message[]>([]);
