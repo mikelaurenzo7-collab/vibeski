@@ -10,7 +10,6 @@ import {
   hashPassword,
   comparePassword,
 } from "./auth";
-import { createOrchestrator } from "./models";
 import {
   getSubscriptionStatus,
   incrementUsage,
@@ -19,13 +18,6 @@ import {
   handleWebhook,
 } from "./subscription";
 import { canAccessAgent, getTierConfig } from "../shared/subscription";
-
-const orchestrator = createOrchestrator({
-  raptorApiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || '',
-  raptorBaseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  geminiApiKey: process.env.GOOGLE_API_KEY || '',
-  grokApiKey: process.env.GROK_API_KEY || '',
-});
 
 const SHARED_FORMAT_RULES = `
 FORMATTING RULES:
@@ -173,34 +165,6 @@ ${SHARED_FORMAT_RULES}`,
 const DEFAULT_PROMPT = AGENT_PROMPTS.builder;
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Debug test endpoint - remove after verifying streaming works
-  app.get("/api/test-stream", async (_req, res) => {
-    const OpenAI = (await import("openai")).default;
-    const client = new OpenAI({
-      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-    });
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.flushHeaders();
-    try {
-      const stream = await client.chat.completions.create({
-        model: 'gpt-4.1-mini',
-        messages: [{ role: 'user', content: 'Say hi in 3 words' }],
-        stream: true,
-        max_completion_tokens: 100,
-      });
-      for await (const chunk of stream) {
-        const c = chunk.choices[0]?.delta?.content || '';
-        if (c) res.write(`data: ${JSON.stringify({ content: c })}\n\n`);
-      }
-    } catch (e: any) {
-      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
-    }
-    res.write("data: [DONE]\n\n");
-    res.end();
-  });
-
   app.use(authMiddleware as any);
 
   app.post("/api/auth/signup", async (req: AuthRequest, res) => {
@@ -432,12 +396,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       incrementUsage(deviceId);
 
       res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache, no-transform");
-      res.setHeader("X-Accel-Buffering", "no");
+      res.setHeader("Cache-Control", "no-cache");
       res.flushHeaders();
 
-      let aborted = false;
-      req.on("close", () => { aborted = true; });
+      const apiMessages = [
+        { role: 'system' as const, content: systemPrompt },
+        ...sanitized.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      ];
+      const maxTokens = tierConfig.limits.maxTokens || 4096;
+
+      let streamed = false;
 
       try {
         const OpenAI = (await import("openai")).default;
@@ -445,35 +413,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
           apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
           baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
         });
-
         const stream = await client.chat.completions.create({
           model: 'gpt-4.1-mini',
-          messages: [
-            { role: 'system' as const, content: systemPrompt },
-            ...sanitized.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-          ],
+          messages: apiMessages,
           stream: true,
-          max_completion_tokens: 16384,
+          max_completion_tokens: maxTokens,
         });
-
         for await (const chunk of stream) {
-          if (aborted) break;
-          const content = chunk.choices[0]?.delta?.content || '';
-          if (content) {
-            res.write(`data: ${JSON.stringify({ content })}\n\n`);
+          const c = chunk.choices[0]?.delta?.content || '';
+          if (c) {
+            res.write(`data: ${JSON.stringify({ content: c })}\n\n`);
+            streamed = true;
           }
         }
-      } catch (error) {
-        console.error("Chat streaming failed:", error);
-        if (!aborted) {
+      } catch (raptorError) {
+        console.error("[raptor] failed, trying gemini:", (raptorError as Error).message);
+        if (!streamed && process.env.GOOGLE_API_KEY) {
+          try {
+            const { GoogleGenerativeAI } = await import("@google/generative-ai");
+            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+            const model = genAI.getGenerativeModel({
+              model: 'gemini-2.5-flash',
+              systemInstruction: systemPrompt,
+            });
+            const history = sanitized.slice(0, -1).map((m: any) => ({
+              role: m.role === 'assistant' ? 'model' as const : 'user' as const,
+              parts: [{ text: m.content }],
+            }));
+            const lastMsg = sanitized[sanitized.length - 1];
+            const chat = model.startChat({ history });
+            const result = await chat.sendMessageStream(lastMsg.content);
+            for await (const chunk of result.stream) {
+              const text = chunk.text();
+              if (text) {
+                res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+                streamed = true;
+              }
+            }
+          } catch (geminiError) {
+            console.error("[gemini] also failed:", (geminiError as Error).message);
+            res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
+          }
+        } else if (!streamed) {
           res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
         }
       }
 
-      if (!aborted) {
-        res.write("data: [DONE]\n\n");
-        res.end();
-      }
+      res.write("data: [DONE]\n\n");
+      res.end();
     } catch (error) {
       console.error("Chat error:", error);
       if (res.headersSent) {
@@ -481,100 +468,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.end();
       } else {
         res.status(500).json({ error: "Failed to process chat request" });
-      }
-    }
-  });
-
-  app.post("/api/generate-image", async (req, res) => {
-    try {
-      const { prompt, sourceImage } = req.body;
-
-      if (!prompt || typeof prompt !== "string") {
-        return res.status(400).json({ error: "Prompt is required" });
-      }
-
-      if (prompt.length > 2000) {
-        return res.status(400).json({ error: "Prompt too long (max 2000 chars)" });
-      }
-
-      const base64Image = await orchestrator.grok.generateImage(
-        prompt,
-        sourceImage || undefined
-      );
-
-      res.json({ image: base64Image });
-    } catch (error: any) {
-      console.error("Image generation error:", error);
-      const message = error?.message?.includes("403")
-        ? "Image generation is not available — check your Grok API credits"
-        : "Failed to generate image";
-      res.status(500).json({ error: message });
-    }
-  });
-
-  app.post("/api/understand-image", async (req, res) => {
-    try {
-      const { imageUrl, imageBase64, question } = req.body;
-
-      if (!question || typeof question !== "string") {
-        return res.status(400).json({ error: "Question is required" });
-      }
-      if (!imageUrl && !imageBase64) {
-        return res.status(400).json({ error: "Image URL or base64 data is required" });
-      }
-
-      const imageContent: any = {
-        type: "image_url",
-        image_url: {
-          url: imageUrl || `data:image/png;base64,${imageBase64}`,
-          detail: "high",
-        },
-      };
-
-      const messages = [
-        {
-          role: "user" as const,
-          content: [
-            imageContent,
-            { type: "text", text: question },
-          ],
-        },
-      ];
-
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache, no-transform");
-      res.setHeader("X-Accel-Buffering", "no");
-      res.flushHeaders();
-
-      let aborted = false;
-      req.on("close", () => { aborted = true; });
-
-      try {
-        for await (const chunk of orchestrator.grok.sendMessageWithVision(
-          messages,
-          "You are a helpful visual analyst. Describe what you see accurately and in detail."
-        )) {
-          if (aborted) break;
-          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
-        }
-      } catch (visionError: any) {
-        console.error("Vision error:", visionError);
-        if (!aborted) {
-          res.write(`data: ${JSON.stringify({ error: "Vision analysis failed" })}\n\n`);
-        }
-      }
-
-      if (!aborted) {
-        res.write("data: [DONE]\n\n");
-        res.end();
-      }
-    } catch (error) {
-      console.error("Image understanding error:", error);
-      if (res.headersSent) {
-        res.write(`data: ${JSON.stringify({ error: "An error occurred" })}\n\n`);
-        res.end();
-      } else {
-        res.status(500).json({ error: "Failed to analyze image" });
       }
     }
   });
