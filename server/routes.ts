@@ -1010,6 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileType: f.type || f.fileType || 'text',
           }))
         );
+        storage.saveProjectVersion(project.id, 'Initial version').catch(() => {});
       }
 
       res.status(201).json(project);
@@ -1048,7 +1049,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (files && Array.isArray(files)) {
         const existingFiles = await storage.getProjectFiles(project.id);
         if (existingFiles.length > 0) {
-          storage.saveProjectVersion(project.id, 'Auto-save before update').catch(() => {});
+          try {
+            await storage.saveProjectVersion(project.id, 'Auto-save before update');
+          } catch (e) {
+            console.error("Failed to save version snapshot:", e);
+          }
         }
         await storage.saveProjectFiles(
           project.id,

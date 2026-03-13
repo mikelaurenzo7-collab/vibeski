@@ -62,7 +62,13 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - **Project Builder System**: Multi-file project generation from Builder agent, auto-saved to DB with file editor, live preview, and one-click deployment to `/live/:slug/`
 - **Multi-File Generation**: Builder generates separate index.html, style.css, script.js files using ===FILE: path=== delimiters; parsed by `lib/file-parser.ts`
 - **Live Deployment**: Deploy projects to public URLs at `/live/:slug/`, served directly from database; per-project data API at `/live/:slug/api/data/:collection` for CRUD persistence
-- **Project Detail Screen**: `app/project/[id].tsx` with preview tab (iframe), files tab (code viewer), deploy/undeploy, live URL banner
+- **Project Detail Screen**: `app/project/[id].tsx` with 3 tabs (Preview, Files, History), inline code editing with save, version history with restore, actions dropdown (Fork, Export, Open Live), deploy/undeploy, live URL banner
+- **Project Version History**: Auto-versioned on create and every file update. Versions table stores file snapshots with version numbers. Restore creates a safety snapshot before overwriting.
+- **Project Forking**: One-click fork duplicates project + all files into a new project
+- **ZIP Export**: Download all project files as a text bundle (web only)
+- **Starter Templates**: 12 categorized templates accessible from Projects screen. Selecting a template creates a Builder conversation with a rich prompt to generate a production-quality app.
+- **Enhanced Builder AI**: SHARED_BUILD_RULES upgraded with CDN libraries (Chart.js, GSAP, Three.js, Tailwind, Lucide, SortableJS), multi-page hash routing, dark mode patterns, localStorage helpers, advanced design patterns
+- **Project Search & Filtering**: Search projects by name/description, filter by status (All/Live/Draft) in the projects list
 - **Persistent Memory System**: Auto-extracts user preferences, tech stack, business context, style preferences, project goals, and corrections from chat messages. Stored in `userMemories` table and injected into system prompts for personalized responses across conversations.
 - **Conversation Summarization**: When conversations exceed 20 messages, older messages are compressed into summaries stored in `conversationSummaries` table. Recent messages (last 16) are kept in full, with summaries providing context for earlier discussion.
 - **Project Context Injection**: Builder conversations automatically include existing project file structure and content in the system prompt, enabling iterative editing with full awareness of current project state.
@@ -121,6 +127,14 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - `DELETE /api/projects/:id` - Delete project
 - `POST /api/projects/:id/deploy` - Deploy project (generates slug, sets status=deployed)
 - `POST /api/projects/:id/undeploy` - Take project offline
+- `GET /api/projects/:id/versions` - List version history
+- `POST /api/projects/:id/versions` - Create manual version snapshot
+- `POST /api/projects/:id/versions/:versionId/restore` - Restore to a previous version
+- `POST /api/projects/:id/fork` - Fork project (duplicates with files)
+- `GET /api/projects/:id/export` - Export project files
+- `POST /api/projects/:id/save-files` - Save edited files (auto-creates version)
+- `GET /api/project-templates` - List starter templates
+- `POST /api/project-templates/:id/use` - Create project from template
 - `GET /api/projects/by-conversation/:conversationId` - Find project linked to a conversation
 - `GET /live/:slug/` - Serve deployed project index.html
 - `GET /live/:slug/:fileName` - Serve deployed project static files (CSS, JS, etc.)
