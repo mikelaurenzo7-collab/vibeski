@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/colors';
+import { getAgent } from '@/constants/agents';
 import { useChat, type Message } from '@/lib/chat-context';
 import { streamChat } from '@/lib/stream-chat';
 import { MessageBubble } from '@/components/MessageBubble';
@@ -26,13 +27,6 @@ function generateUniqueId(): string {
   return `msg-${Date.now()}-${messageCounter}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-const SUGGESTIONS = [
-  { icon: 'globe' as const, label: 'Build a weather app', prompt: 'Build me a beautiful weather app with a 5-day forecast, current conditions with animated icons, and a clean modern UI' },
-  { icon: 'layout' as const, label: 'Design a landing page', prompt: 'Build me a stunning SaaS landing page for a productivity tool called "FlowState" with hero section, features, pricing cards, and testimonials' },
-  { icon: 'bar-chart-2' as const, label: 'Create a dashboard', prompt: 'Build me an analytics dashboard with revenue charts, user metrics, conversion rates, and a clean dark theme' },
-  { icon: 'edit-3' as const, label: 'Write & create', prompt: 'Help me write a compelling pitch deck outline for a startup that uses AI to personalize education' },
-];
-
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -41,6 +35,7 @@ export default function ChatScreen() {
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
   const conversation = getConversation(id);
+  const agent = getAgent(conversation?.agentId || 'builder');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
@@ -112,7 +107,7 @@ export default function ChatScreen() {
             return updated;
           });
         }
-      });
+      }, agent.id);
     } catch (error) {
       setShowTyping(false);
       setMessages(prev => [...prev, {
@@ -142,26 +137,22 @@ export default function ChatScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconOuter}>
-        <View style={styles.emptyIconInner}>
-          <Feather name="zap" size={24} color={Colors.accent} />
+      <View style={[styles.emptyIconOuter, { borderColor: agent.colorLight }]}>
+        <View style={[styles.emptyIconInner, { backgroundColor: agent.colorLight }]}>
+          <Feather name={agent.icon} size={24} color={agent.color} />
         </View>
       </View>
-      <Text style={styles.emptyTitle}>How can I help?</Text>
-      <Text style={styles.emptyText}>
-        Ask me anything or try a suggestion below
-      </Text>
+      <Text style={styles.emptyTitle}>{agent.name}</Text>
+      <Text style={styles.emptyTagline}>{agent.tagline}</Text>
       <View style={styles.suggestions}>
-        {SUGGESTIONS.map((s, i) => (
+        {agent.suggestions.map((s, i) => (
           <Pressable
             key={i}
             onPress={() => handleSend(s.prompt)}
             style={({ pressed }) => [styles.suggestionChip, pressed && styles.suggestionPressed]}
           >
-            <View style={styles.suggestionIcon}>
-              <Feather name={s.icon} size={14} color={Colors.accent} />
-            </View>
             <Text style={styles.suggestionText}>{s.label}</Text>
+            <Feather name="arrow-up-right" size={13} color={Colors.warmGrayLight} />
           </Pressable>
         ))}
       </View>
@@ -169,7 +160,7 @@ export default function ChatScreen() {
   );
 
   const displayTitle = conversation?.title === 'New Chat'
-    ? 'New Conversation'
+    ? agent.name
     : (conversation?.title || 'Conversation');
 
   return (
@@ -185,6 +176,9 @@ export default function ChatScreen() {
           <Feather name="chevron-left" size={22} color="rgba(255,255,255,0.7)" />
         </Pressable>
         <View style={styles.headerCenter}>
+          <View style={[styles.headerAgentDot, { backgroundColor: agent.color }]}>
+            <Feather name={agent.icon} size={10} color="#FFFFFF" />
+          </View>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {displayTitle}
           </Text>
@@ -244,6 +238,15 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  headerAgentDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -268,15 +271,14 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingHorizontal: 32,
-    gap: 10,
+    paddingHorizontal: 28,
+    gap: 8,
   },
   emptyIconOuter: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    borderWidth: 1,
-    borderColor: Colors.divider,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -285,32 +287,32 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.accentSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyTitle: {
     fontSize: 22,
-    fontFamily: 'DMSans_600SemiBold',
+    fontFamily: 'DMSans_700Bold',
     color: Colors.black,
     letterSpacing: -0.3,
   },
-  emptyText: {
+  emptyTagline: {
     fontSize: 14,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
     textAlign: 'center',
     lineHeight: 21,
+    marginBottom: 8,
   },
   suggestions: {
     width: '100%',
     gap: 8,
-    marginTop: 16,
+    marginTop: 8,
   },
   suggestionChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.divider,
@@ -321,14 +323,6 @@ const styles = StyleSheet.create({
   suggestionPressed: {
     backgroundColor: Colors.creamDark,
     transform: [{ scale: 0.98 }],
-  },
-  suggestionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: Colors.accentSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   suggestionText: {
     fontSize: 14,
