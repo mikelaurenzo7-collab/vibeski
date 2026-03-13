@@ -84,17 +84,20 @@ export function getSubscriptionStatus(deviceId: string): SubscriptionStatus & { 
   const monthlyLimit = tierConfig.limits.monthlyCredits;
   const overageRate = tierConfig.limits.overageRate;
 
-  let canGenerate: boolean;
-  if (sub.tier === 'free') {
-    canGenerate = usageRecord.count < dailyLimit;
-  } else {
-    canGenerate = true;
-  }
+  const canGenerate = true;
 
-  const overageCredits = monthlyLimit > 0
-    ? Math.max(0, monthly.creditsUsed - monthlyLimit)
-    : 0;
-  const overageCost = overageCredits * overageRate;
+  let overageCredits: number;
+  let overageCost: number;
+  if (sub.tier === 'free') {
+    const dailyOverage = Math.max(0, usageRecord.count - dailyLimit);
+    overageCredits = dailyOverage;
+    overageCost = dailyOverage * overageRate;
+  } else {
+    overageCredits = monthlyLimit > 0
+      ? Math.max(0, monthly.creditsUsed - monthlyLimit)
+      : 0;
+    overageCost = overageCredits * overageRate;
+  }
 
   return {
     tier: sub.tier,
