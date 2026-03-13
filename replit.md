@@ -1,7 +1,7 @@
 # FIELD OF DREAMS
 
 ## Overview
-FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo React Native. It features 6 specialized AI agents (Builder, Strategist, Writer, Code, Designer, Analyst), powered by a multi-model AI architecture (Raptor primary, Gemini fallback), streaming responses in real-time with rich markdown rendering and live HTML previews for generated apps/websites.
+FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo React Native. It features 15 specialized AI agents, powered by a multi-model AI architecture (Raptor primary, Gemini fallback), streaming responses in real-time with rich markdown rendering and live HTML previews for generated apps/websites.
 
 ## Architecture
 - **Frontend**: Expo Router (file-based routing), React Native
@@ -14,8 +14,8 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 
 ## Subscription Tiers
 - **Free**: 10 generations/day, Builder & Writer agents, 4K token limit
-- **Pro ($19/mo)**: 100 generations/day, all 6 agents, 16K tokens, HTML live previews
-- **Elite ($49/mo)**: Unlimited generations, all 6 agents, 16K tokens, priority support
+- **Pro ($19/mo)**: 100 generations/day, all 15 agents, 16K tokens, HTML live previews
+- **Elite ($49/mo)**: Unlimited generations, all 15 agents, 16K tokens, priority support
 
 ## Multi-Model Strategy
 - **Primary**: Raptor (gpt-4.1-mini via Replit AI Integrations) — fast, reliable, great for all agent types
@@ -23,13 +23,24 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - Streaming is handled inline in routes.ts using dynamic imports for each provider
 - The `for await` pattern works correctly with direct SDK stream objects in Express handlers
 
-## Built-in Agents
+## Built-in Agents (15 total)
+### Core Agents
 - **Builder** (green) - Creates apps, sites & tools with live HTML previews [Free]
 - **Strategist** (purple) - Business plans, growth strategy, competitive analysis [Pro+]
 - **Writer** (orange) - Content creation, copywriting, storytelling [Free]
 - **Code** (blue) - Programming, debugging, system architecture [Pro+]
 - **Designer** (pink) - UI/UX, branding, visual design [Pro+]
 - **Analyst** (teal) - Research, data analysis, market insights [Pro+]
+### Tool Agents
+- **Branding** (fuchsia) - Brand identity kits, color palettes, typography, style guides [Pro+]
+- **Thinker** (indigo) - Design thinking, creative problem solving, user personas [Pro+]
+- **SEO Pro** (emerald) - SEO auditing, keyword strategy, technical SEO [Pro+]
+- **Page Gen** (green) - Programmatic SEO, scalable page generation [Pro+]
+- **Content** (amber) - Social media content, newsletters, ad copy at scale [Pro+]
+- **Converter** (slate) - Data format conversion (JSON, CSV, XML, SQL, etc.) [Pro+]
+- **GitHub** (dark) - Open-source library discovery, stack comparison [Pro+]
+- **Optimizer** (cyan) - Page speed, meta tags, CRO, App Store optimization [Pro+]
+- **Cloner** (violet) - Website recreation, design analysis, pixel-perfect rebuilds [Pro+]
 
 ## Key Features
 - **Agent Selection**: Home screen shows agents as cards; tap to start a conversation with that agent

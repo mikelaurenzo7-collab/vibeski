@@ -25,7 +25,7 @@ export const TIERS: TierConfig[] = [
       'Builder & Writer agents',
       'Standard response speed',
       'Basic markdown rendering',
-    ],
+    ] as string[],
     limits: {
       dailyGenerations: 10,
       agents: 'basic',
@@ -39,11 +39,11 @@ export const TIERS: TierConfig[] = [
     priceLabel: '$19',
     features: [
       '100 generations per day',
-      'All 6 agents',
+      'All 15 agents',
       'Priority response speed',
       'HTML live previews',
       'Extended context (16K tokens)',
-    ],
+    ] as string[],
     limits: {
       dailyGenerations: 100,
       agents: 'all',
@@ -58,12 +58,12 @@ export const TIERS: TierConfig[] = [
     priceLabel: '$49',
     features: [
       'Unlimited generations',
-      'All 6 agents',
+      'All 15 agents',
       'Fastest response speed',
       'HTML live previews',
       'Maximum context (16K tokens)',
       'Priority support',
-    ],
+    ] as string[],
     limits: {
       dailyGenerations: -1,
       agents: 'all',
