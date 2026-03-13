@@ -573,7 +573,14 @@ export default function CommandCenterScreen() {
                 >
                   <Text style={{ fontSize: 22 }}>{m.icon}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.settingTitle, isActive && { color: Colors.accent }]}>{m.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={[styles.settingTitle, isActive && { color: Colors.accent }]}>{m.name}</Text>
+                      {key === 'anthropic' && (
+                        <View style={{ backgroundColor: 'rgba(201,162,78,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: Colors.accent }}>5x CREDITS</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.settingDesc}>{m.description}</Text>
                   </View>
                   {isActive && <Feather name="check-circle" size={20} color={Colors.accent} />}

@@ -73,7 +73,7 @@ function PriceComparisonTable() {
           <Text style={[styles.compNote, { color: 'rgba(255,255,255,0.5)' }]}>No surprise bills. Ever.</Text>
         </View>
         <View style={styles.compRight}>
-          <Text style={[styles.compCost, { color: Colors.accent }]}>$19–$49</Text>
+          <Text style={[styles.compCost, { color: Colors.accent }]}>$12–$29</Text>
           <Text style={[styles.compAgents, { color: 'rgba(255,255,255,0.6)' }]}>15 specialists</Text>
         </View>
       </View>
