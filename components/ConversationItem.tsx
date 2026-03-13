@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, Pressable, StyleSheet, GestureResponderEvent } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
 import type { Conversation } from '@/lib/chat-context';
 
@@ -8,6 +8,8 @@ interface ConversationItemProps {
   conversation: Conversation;
   onPress: () => void;
   onDelete: () => void;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 function formatTime(timestamp: number): string {
@@ -18,43 +20,56 @@ function formatTime(timestamp: number): string {
   const days = Math.floor(diff / 86400000);
 
   if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 7) return `${days}d`;
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
   return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function ConversationItem({ conversation, onPress, onDelete }: ConversationItemProps) {
+export function ConversationItem({ conversation, onPress, onDelete, isFirst, isLast }: ConversationItemProps) {
   const lastMessage = conversation.messages[conversation.messages.length - 1];
-  const preview = lastMessage?.content.slice(0, 60) || 'No messages yet';
+  const preview = lastMessage?.content.slice(0, 70) || 'No messages yet';
   const messageCount = conversation.messages.length;
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.container,
+        isFirst && styles.containerFirst,
+        isLast && styles.containerLast,
+        pressed && styles.pressed,
+      ]}
       testID="conversation-item"
     >
-      <View style={styles.iconContainer}>
-        <Ionicons name="chatbubble-ellipses" size={20} color={Colors.accent} />
-      </View>
-      <View style={styles.content}>
+      <View style={styles.accentLine} />
+      <View style={styles.body}>
         <View style={styles.header}>
           <Text style={styles.title} numberOfLines={1}>{conversation.title}</Text>
           <Text style={styles.time}>{formatTime(conversation.updatedAt)}</Text>
         </View>
-        <Text style={styles.preview} numberOfLines={1}>
+        <Text style={styles.preview} numberOfLines={2}>
           {preview}
         </Text>
+        <View style={styles.footer}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>
+              {messageCount} {messageCount === 1 ? 'message' : 'messages'}
+            </Text>
+          </View>
+          <Pressable
+            onPress={(e: GestureResponderEvent) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            hitSlop={12}
+            style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.4 }]}
+            testID="delete-conversation"
+          >
+            <Feather name="trash-2" size={14} color={Colors.warmGrayLight} />
+          </Pressable>
+        </View>
       </View>
-      <Pressable
-        onPress={onDelete}
-        hitSlop={12}
-        style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.5 }]}
-        testID="delete-conversation"
-      >
-        <Ionicons name="trash-outline" size={18} color={Colors.warmGrayLight} />
-      </Pressable>
     </Pressable>
   );
 }
@@ -62,26 +77,35 @@ export function ConversationItem({ conversation, onPress, onDelete }: Conversati
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
     backgroundColor: Colors.white,
+    marginBottom: 1,
+    overflow: 'hidden',
+  },
+  containerFirst: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  containerLast: {
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    marginBottom: 0,
   },
   pressed: {
     backgroundColor: Colors.creamDark,
   },
-  iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: Colors.cream,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  accentLine: {
+    width: 3,
+    backgroundColor: Colors.accent,
+    borderRadius: 2,
+    marginVertical: 14,
+    marginLeft: 2,
   },
-  content: {
+  body: {
     flex: 1,
-    gap: 3,
+    paddingVertical: 14,
+    paddingLeft: 14,
+    paddingRight: 18,
+    gap: 6,
   },
   header: {
     flexDirection: 'row',
@@ -93,20 +117,40 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.black,
     flex: 1,
-    marginRight: 8,
+    marginRight: 12,
+    letterSpacing: -0.2,
   },
   time: {
     fontSize: 12,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGrayLight,
+    letterSpacing: 0.1,
   },
   preview: {
     fontSize: 14,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
+    lineHeight: 20,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  badge: {
+    backgroundColor: Colors.cream,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.warmGray,
+    letterSpacing: 0.2,
   },
   deleteBtn: {
-    padding: 8,
-    marginLeft: 4,
+    padding: 6,
   },
 });
