@@ -617,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? AGENT_PROMPTS[agentId]
         : DEFAULT_PROMPT;
 
-      incrementUsage(deviceId);
+      incrementUsage(deviceId, agentId);
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -753,6 +753,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       dailyGenerationsUsed: status.dailyGenerationsUsed,
       dailyGenerationsLimit: status.dailyGenerationsLimit,
       canGenerate: status.canGenerate,
+      monthlyCreditsUsed: status.monthlyCreditsUsed,
+      monthlyCreditsLimit: status.monthlyCreditsLimit,
+      overageCredits: status.overageCredits,
+      overageRate: status.overageRate,
+      overageCost: status.overageCost,
+      billingCycleStart: status.billingCycleStart,
+      billingCycleEnd: status.billingCycleEnd,
     });
   });
 

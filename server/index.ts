@@ -151,10 +151,12 @@ function serveLandingPage({
   log(`baseUrl`, baseUrl);
   log(`expsUrl`, expsUrl);
 
+  const webUrl = `${baseUrl.replace(':5000', ':8081')}`;
   const html = landingPageTemplate
     .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
     .replace(/EXPS_URL_PLACEHOLDER/g, expsUrl)
-    .replace(/APP_NAME_PLACEHOLDER/g, appName);
+    .replace(/APP_NAME_PLACEHOLDER/g, appName)
+    .replace(/EXPO_WEB_URL_PLACEHOLDER/g, webUrl);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.status(200).send(html);
