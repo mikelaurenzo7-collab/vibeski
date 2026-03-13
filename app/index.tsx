@@ -2,7 +2,6 @@ import React from 'react';
 import {
   View,
   Text,
-  FlatList,
   ScrollView,
   Pressable,
   StyleSheet,
@@ -17,20 +16,22 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/colors';
 import { AGENTS } from '@/constants/agents';
 import { useChat, type Conversation } from '@/lib/chat-context';
+import { useAuth } from '@/lib/auth-context';
 import { ConversationItem } from '@/components/ConversationItem';
 import { AgentCard } from '@/components/AgentCard';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { conversations, createConversation, deleteConversation } = useChat();
+  const { isLoggedIn, user } = useAuth();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
-  const handleNewChat = (agentId: string) => {
+  const handleNewChat = async (agentId: string) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    const convo = createConversation(agentId);
+    const convo = await createConversation(agentId);
     router.push({ pathname: '/chat/[id]', params: { id: convo.id } });
   };
 
@@ -60,27 +61,40 @@ export default function HomeScreen() {
   };
 
   const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
-
-  const renderConversation = ({ item, index }: { item: Conversation; index: number }) => (
-    <ConversationItem
-      conversation={item}
-      onPress={() => handleOpenChat(item.id)}
-      onDelete={() => handleDelete(item.id)}
-      isFirst={index === 0}
-      isLast={index === sortedConversations.length - 1}
-    />
-  );
+  const recentConversations = sortedConversations.slice(0, 5);
 
   return (
     <View style={[styles.screen, { paddingBottom: webBottomInset }]}>
       <StatusBar style="light" />
       <View style={[styles.header, { paddingTop: (insets.top || webTopInset) + 16 }]}>
-        <Text style={styles.headerLabel}>FIELD OF DREAMS</Text>
-        <Text style={styles.headerSubtitle}>
-          {sortedConversations.length > 0
-            ? `${sortedConversations.length} conversation${sortedConversations.length !== 1 ? 's' : ''}`
-            : 'AI Agents'}
-        </Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerLabel}>FIELD OF DREAMS</Text>
+            <Text style={styles.headerSubtitle}>
+              {isLoggedIn
+                ? `Welcome, ${user?.username}`
+                : 'AI Agents'}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            {isLoggedIn && (
+              <Pressable
+                onPress={() => router.push('/projects')}
+                hitSlop={8}
+                style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+              >
+                <Feather name="folder" size={20} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => router.push('/profile')}
+              hitSlop={8}
+              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Feather name="user" size={20} color="rgba(255,255,255,0.7)" />
+            </Pressable>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -88,6 +102,22 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {!isLoggedIn && (
+          <Pressable
+            onPress={() => router.push('/auth')}
+            style={({ pressed }) => [styles.signupBanner, pressed && { opacity: 0.9 }]}
+          >
+            <View style={styles.bannerLeft}>
+              <Feather name="shield" size={18} color={Colors.primary} />
+              <View style={styles.bannerTextGroup}>
+                <Text style={styles.bannerTitle}>Save your work</Text>
+                <Text style={styles.bannerSubtitle}>Create an account to sync projects</Text>
+              </View>
+            </View>
+            <Feather name="chevron-right" size={18} color={Colors.warmGrayLight} />
+          </Pressable>
+        )}
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Agents</Text>
           <Text style={styles.sectionSub}>{AGENTS.length} specialists</Text>
@@ -107,21 +137,25 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
 
-        {sortedConversations.length > 0 && (
+        {recentConversations.length > 0 && (
           <View style={styles.conversationsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent</Text>
-              <Text style={styles.sectionSub}>{sortedConversations.length}</Text>
+              {sortedConversations.length > 5 && (
+                <Pressable onPress={() => router.push('/projects')}>
+                  <Text style={styles.sectionLink}>See all</Text>
+                </Pressable>
+              )}
             </View>
             <View style={styles.conversationsList}>
-              {sortedConversations.map((item, index) => (
+              {recentConversations.map((item, index) => (
                 <ConversationItem
                   key={item.id}
                   conversation={item}
                   onPress={() => handleOpenChat(item.id)}
                   onDelete={() => handleDelete(item.id)}
                   isFirst={index === 0}
-                  isLast={index === sortedConversations.length - 1}
+                  isLast={index === recentConversations.length - 1}
                 />
               ))}
             </View>
@@ -151,6 +185,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 24,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   headerLabel: {
     fontSize: 24,
     fontFamily: 'DMSans_700Bold',
@@ -164,11 +203,54 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: 0.2,
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingBottom: 40,
+  },
+  signupBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  bannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  bannerTextGroup: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    marginTop: 1,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -188,6 +270,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGrayLight,
+  },
+  sectionLink: {
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.primary,
   },
   agentsRow: {
     paddingHorizontal: 16,

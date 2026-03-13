@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
+import { AuthProvider } from "@/lib/auth-context";
 import { ChatProvider } from "@/lib/chat-context";
 import {
   useFonts,
@@ -22,6 +23,9 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false, headerBackTitle: "Back" }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="chat/[id]" />
+      <Stack.Screen name="auth" />
+      <Stack.Screen name="projects" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 }
@@ -47,9 +51,11 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView>
           <KeyboardProvider>
-            <ChatProvider>
-              <RootLayoutNav />
-            </ChatProvider>
+            <AuthProvider>
+              <ChatProvider>
+                <RootLayoutNav />
+              </ChatProvider>
+            </AuthProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
