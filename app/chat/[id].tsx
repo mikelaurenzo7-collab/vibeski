@@ -10,7 +10,7 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/colors';
@@ -26,10 +26,17 @@ function generateUniqueId(): string {
   return `msg-${Date.now()}-${messageCounter}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+const SUGGESTIONS = [
+  { icon: 'globe' as const, label: 'Build a weather app', prompt: 'Build me a beautiful weather app with a 5-day forecast, current conditions with animated icons, and a clean modern UI' },
+  { icon: 'layout' as const, label: 'Design a landing page', prompt: 'Build me a stunning SaaS landing page for a productivity tool called "FlowState" with hero section, features, pricing cards, and testimonials' },
+  { icon: 'bar-chart-2' as const, label: 'Create a dashboard', prompt: 'Build me an analytics dashboard with revenue charts, user metrics, conversion rates, and a clean dark theme' },
+  { icon: 'edit-3' as const, label: 'Write & create', prompt: 'Help me write a compelling pitch deck outline for a startup that uses AI to personalize education' },
+];
+
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { getConversation, saveMessages, createConversation } = useChat();
+  const { getConversation, saveMessages } = useChat();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
@@ -39,6 +46,11 @@ export default function ChatScreen() {
   const [showTyping, setShowTyping] = useState(false);
 
   const initializedRef = useRef(false);
+  const latestMessagesRef = useRef<Message[]>([]);
+
+  useEffect(() => {
+    latestMessagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     if (!id || (!conversation && !initializedRef.current)) {
@@ -112,10 +124,9 @@ export default function ChatScreen() {
       setIsStreaming(false);
       setShowTyping(false);
       if (id) {
-        setMessages(prev => {
-          saveMessages(id, prev);
-          return prev;
-        });
+        setTimeout(() => {
+          saveMessages(id, latestMessagesRef.current);
+        }, 0);
       }
     }
   };
@@ -131,15 +142,35 @@ export default function ChatScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconWrap}>
-        <Ionicons name="sparkles" size={32} color={Colors.accent} />
+      <View style={styles.emptyIconOuter}>
+        <View style={styles.emptyIconInner}>
+          <Feather name="zap" size={24} color={Colors.accent} />
+        </View>
       </View>
       <Text style={styles.emptyTitle}>How can I help?</Text>
       <Text style={styles.emptyText}>
-        Ask me anything. I'm here to help you cultivate great ideas.
+        Ask me anything or try a suggestion below
       </Text>
+      <View style={styles.suggestions}>
+        {SUGGESTIONS.map((s, i) => (
+          <Pressable
+            key={i}
+            onPress={() => handleSend(s.prompt)}
+            style={({ pressed }) => [styles.suggestionChip, pressed && styles.suggestionPressed]}
+          >
+            <View style={styles.suggestionIcon}>
+              <Feather name={s.icon} size={14} color={Colors.accent} />
+            </View>
+            <Text style={styles.suggestionText}>{s.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
+
+  const displayTitle = conversation?.title === 'New Chat'
+    ? 'New Conversation'
+    : (conversation?.title || 'Conversation');
 
   return (
     <View style={styles.screen}>
@@ -151,14 +182,11 @@ export default function ChatScreen() {
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
           testID="back-button"
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.white} />
+          <Feather name="chevron-left" size={22} color="rgba(255,255,255,0.7)" />
         </Pressable>
         <View style={styles.headerCenter}>
-          <View style={styles.headerDot}>
-            <Ionicons name="leaf" size={14} color={Colors.accent} />
-          </View>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {conversation?.title === 'New Chat' ? 'Field of Dreams' : (conversation?.title || 'Chat')}
+            {displayTitle}
           </Text>
         </View>
         <View style={styles.headerSpacer} />
@@ -202,7 +230,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: Colors.primary,
-    paddingBottom: 12,
+    paddingBottom: 14,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,29 +238,20 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerCenter: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  headerDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(212, 168, 83, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.white,
+    letterSpacing: -0.1,
   },
   headerSpacer: {
     width: 36,
@@ -241,7 +260,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messageList: {
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   messageListEmpty: {
     flex: 1,
@@ -249,28 +268,73 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
     gap: 10,
   },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.white,
+  emptyIconOuter: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1,
+    borderColor: Colors.divider,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
+  emptyIconInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.accentSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emptyTitle: {
-    fontSize: 20,
-    fontFamily: 'DMSans_700Bold',
+    fontSize: 22,
+    fontFamily: 'DMSans_600SemiBold',
     color: Colors.black,
+    letterSpacing: -0.3,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 21,
+  },
+  suggestions: {
+    width: '100%',
+    gap: 8,
+    marginTop: 16,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  suggestionPressed: {
+    backgroundColor: Colors.creamDark,
+    transform: [{ scale: 0.98 }],
+  },
+  suggestionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.accentSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    color: Colors.blackSoft,
+    letterSpacing: 0.1,
+    flex: 1,
   },
 });

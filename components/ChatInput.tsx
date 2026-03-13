@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 
@@ -32,7 +32,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         <TextInput
           ref={inputRef}
           style={styles.input}
-          placeholder="Ask anything..."
+          placeholder="Message..."
           placeholderTextColor={Colors.warmGrayLight}
           value={text}
           onChangeText={setText}
@@ -53,9 +53,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           ]}
           testID="send-button"
         >
-          <Ionicons
+          <Feather
             name="arrow-up"
-            size={20}
+            size={18}
             color={canSend ? Colors.white : Colors.warmGrayLight}
           />
         </Pressable>
@@ -67,38 +67,39 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 10,
+    paddingBottom: 6,
     backgroundColor: Colors.cream,
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: Colors.inputBg,
+    backgroundColor: Colors.white,
     borderRadius: 24,
-    paddingLeft: 16,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    paddingLeft: 18,
     paddingRight: 6,
     paddingVertical: 6,
-    minHeight: 44,
+    minHeight: 48,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'DMSans_400Regular',
     color: Colors.black,
     maxHeight: 120,
-    paddingVertical: Platform.OS === 'ios' ? 6 : 4,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 6,
     lineHeight: 22,
+    letterSpacing: 0.1,
   },
   sendButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 6,
+    marginLeft: 8,
   },
   sendActive: {
     backgroundColor: Colors.primary,
@@ -108,6 +109,6 @@ const styles = StyleSheet.create({
   },
   sendPressed: {
     opacity: 0.8,
-    transform: [{ scale: 0.95 }],
+    transform: [{ scale: 0.93 }],
   },
 });
