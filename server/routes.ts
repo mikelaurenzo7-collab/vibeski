@@ -363,6 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/chat", async (req, res) => {
+    console.log("[chat] Request received, agentId:", req.body?.agentId);
     try {
       const { messages, agentId } = req.body;
       const deviceId = req.headers['x-device-id'] as string || 'anonymous';
@@ -413,19 +414,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const primaryProvider = providerType === 'grok' ? grokProvider : raptorProvider;
       const fallbackProvider = providerType === 'grok' ? raptorProvider : null;
 
+      console.log(`[chat] Provider: ${primaryProvider.name}, prompt length: ${systemPrompt.length}`);
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("X-Accel-Buffering", "no");
       res.flushHeaders();
 
       let aborted = false;
-      req.on("close", () => { aborted = true; });
+      req.on("close", () => { aborted = true; console.log("[chat] Client disconnected"); });
 
       const streamFromProvider = async (provider: typeof primaryProvider) => {
+        console.log(`[chat] Starting stream from ${provider.name}...`);
         for await (const chunk of provider.sendMessage(sanitized, systemPrompt)) {
           if (aborted) break;
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
+        console.log(`[chat] Stream from ${provider.name} complete`);
       };
 
       try {
@@ -457,6 +462,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: "Failed to process chat request" });
       }
     }
+  });
+
+  app.get("/api/test-grok", async (_req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.flushHeaders();
+    try {
+      console.log("[test-grok] Starting...");
+      for await (const chunk of grokProvider.sendMessage(
+        [{ role: "user", content: "Say hi in 3 words" }],
+        "Be concise."
+      )) {
+        console.log("[test-grok] chunk:", chunk);
+        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+      }
+      console.log("[test-grok] Done");
+    } catch (e: any) {
+      console.error("[test-grok] Error:", e.message);
+      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
   });
 
   app.post("/api/generate-image", async (req, res) => {
