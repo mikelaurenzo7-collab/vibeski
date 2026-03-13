@@ -1,6 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "node:http";
 import OpenAI from "openai";
+import { storage } from "./storage";
+import { signupSchema, loginSchema } from "@shared/schema";
+import {
+  type AuthRequest,
+  authMiddleware,
+  requireAuth,
+  generateToken,
+  hashPassword,
+  comparePassword,
+} from "./auth";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -122,6 +132,190 @@ ${SHARED_FORMAT_RULES}`,
 const DEFAULT_PROMPT = AGENT_PROMPTS.builder;
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.use(authMiddleware as any);
+
+  app.post("/api/auth/signup", async (req: AuthRequest, res) => {
+    try {
+      const parsed = signupSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+
+      const { username, password, email } = parsed.data;
+
+      const existing = await storage.getUserByUsername(username);
+      if (existing) {
+        return res.status(409).json({ error: "Username already taken" });
+      }
+
+      const hashedPassword = await hashPassword(password);
+      const user = await storage.createUser({ username, password: hashedPassword, email });
+      const token = generateToken(user.id);
+
+      res.status(201).json({
+        token,
+        user: { id: user.id, username: user.username, email: user.email },
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      res.status(500).json({ error: "Failed to create account" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req: AuthRequest, res) => {
+    try {
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+
+      const { username, password } = parsed.data;
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const valid = await comparePassword(password, user.password);
+      if (!valid) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const token = generateToken(user.id);
+      res.json({
+        token,
+        user: { id: user.id, username: user.username, email: user.email },
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Failed to log in" });
+    }
+  });
+
+  app.get("/api/auth/me", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ id: user.id, username: user.username, email: user.email });
+    } catch (error) {
+      console.error("Me error:", error);
+      res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
+  app.get("/api/conversations", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const convos = await storage.getUserConversations(req.userId!);
+      res.json(convos);
+    } catch (error) {
+      console.error("Get conversations error:", error);
+      res.status(500).json({ error: "Failed to get conversations" });
+    }
+  });
+
+  app.post("/api/conversations", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const { title, agentId } = req.body;
+      const convo = await storage.createConversation({
+        userId: req.userId!,
+        title: title || "New Chat",
+        agentId: agentId || "builder",
+      });
+      res.status(201).json(convo);
+    } catch (error) {
+      console.error("Create conversation error:", error);
+      res.status(500).json({ error: "Failed to create conversation" });
+    }
+  });
+
+  app.get("/api/conversations/:id", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const convo = await storage.getConversation(parseInt(req.params.id));
+      if (!convo || convo.userId !== req.userId) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      const msgs = await storage.getConversationMessages(convo.id);
+      res.json({ ...convo, messages: msgs });
+    } catch (error) {
+      console.error("Get conversation error:", error);
+      res.status(500).json({ error: "Failed to get conversation" });
+    }
+  });
+
+  app.put("/api/conversations/:id", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const convo = await storage.getConversation(parseInt(req.params.id));
+      if (!convo || convo.userId !== req.userId) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      const { title } = req.body;
+      const updated = await storage.updateConversation(convo.id, { title });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update conversation error:", error);
+      res.status(500).json({ error: "Failed to update conversation" });
+    }
+  });
+
+  app.delete("/api/conversations/:id", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const convo = await storage.getConversation(parseInt(req.params.id));
+      if (!convo || convo.userId !== req.userId) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      await storage.deleteConversation(convo.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete conversation error:", error);
+      res.status(500).json({ error: "Failed to delete conversation" });
+    }
+  });
+
+  app.post("/api/conversations/:id/duplicate", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const convo = await storage.getConversation(parseInt(req.params.id));
+      if (!convo || convo.userId !== req.userId) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      const duplicated = await storage.duplicateConversation(convo.id);
+      if (!duplicated) {
+        return res.status(500).json({ error: "Failed to duplicate" });
+      }
+      res.status(201).json(duplicated);
+    } catch (error) {
+      console.error("Duplicate conversation error:", error);
+      res.status(500).json({ error: "Failed to duplicate conversation" });
+    }
+  });
+
+  app.post("/api/conversations/:id/messages", requireAuth as any, async (req: AuthRequest, res) => {
+    try {
+      const convo = await storage.getConversation(parseInt(req.params.id));
+      if (!convo || convo.userId !== req.userId) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      const { messages: msgs } = req.body;
+      if (!msgs || !Array.isArray(msgs)) {
+        return res.status(400).json({ error: "Messages array required" });
+      }
+      await storage.saveMessages(convo.id, msgs);
+
+      if (msgs.length > 0 && convo.title === "New Chat") {
+        const firstUserMsg = msgs.find((m: any) => m.role === "user");
+        if (firstUserMsg) {
+          const title = firstUserMsg.content.slice(0, 40) + (firstUserMsg.content.length > 40 ? "..." : "");
+          await storage.updateConversation(convo.id, { title });
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Save messages error:", error);
+      res.status(500).json({ error: "Failed to save messages" });
+    }
+  });
+
   app.post("/api/chat", async (req, res) => {
     try {
       const { messages, agentId } = req.body;

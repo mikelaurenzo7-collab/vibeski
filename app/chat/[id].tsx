@@ -16,7 +16,9 @@ import { StatusBar } from 'expo-status-bar';
 import Colors from '@/constants/colors';
 import { getAgent } from '@/constants/agents';
 import { useChat, type Message } from '@/lib/chat-context';
+import { useAuth, getAuthToken } from '@/lib/auth-context';
 import { streamChat } from '@/lib/stream-chat';
+import { getApiUrl } from '@/lib/query-client';
 import { MessageBubble } from '@/components/MessageBubble';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { ChatInput } from '@/components/ChatInput';
@@ -31,6 +33,7 @@ export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { getConversation, saveMessages } = useChat();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
@@ -48,15 +51,47 @@ export default function ChatScreen() {
   }, [messages]);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!id || (!conversation && !initializedRef.current)) {
       router.replace('/');
       return;
     }
-    if (conversation?.messages && !initializedRef.current) {
-      setMessages(conversation.messages);
+    if (!initializedRef.current) {
       initializedRef.current = true;
+      if (isLoggedIn) {
+        loadServerMessages();
+      } else if (conversation?.messages) {
+        setMessages(conversation.messages);
+      }
     }
-  }, [id, conversation?.messages]);
+  }, [id, conversation?.messages, authLoading, isLoggedIn]);
+
+  const loadServerMessages = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+      const baseUrl = getApiUrl();
+      const res = await fetch(new URL(`/api/conversations/${id}`, baseUrl).toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          const mapped: Message[] = data.messages.map((m: any) => ({
+            id: String(m.id),
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          }));
+          setMessages(mapped);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load messages from server:', e);
+      if (conversation?.messages) {
+        setMessages(conversation.messages);
+      }
+    }
+  };
 
   const handleSend = async (text: string) => {
     if (isStreaming) return;
