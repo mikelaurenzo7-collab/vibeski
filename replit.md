@@ -29,20 +29,42 @@ This dual-model approach is genuinely unique: no competitor uses model diversity
 - **Agent Selection**: Home screen shows agents as cards; tap to start a conversation with that agent
 - **Multi-Model Routing**: Different agents powered by different AI models for personality diversity
 - **Live HTML Preview**: Builder/Code/Designer agents can generate complete web apps rendered in-chat
-- **Markdown Rendering**: Headers, bold, inline code, bullet points, numbered lists
+- **Full-Screen App Preview**: Dedicated preview screen with device frame options (phone, tablet, desktop), landscape rotation, View Source toggle, and share button
+- **Iterative Editing**: Edit button on preview navigates back to chat with context preserved for follow-up modifications
+- **Template Gallery**: Curated prompt templates organized by category (Landing Pages, Dashboards, Portfolios, Tools, Games, Storefronts) on a dedicated screen
+- **Elite Design Standards**: System prompts enforce glassmorphism, CSS custom properties, Google Fonts, responsive layouts, entrance animations, and professional typography in every generated app
+- **Markdown Rendering**: Headers, bold, inline code, bullet points, numbered lists, blockquotes
 - **Code Blocks**: Dark-themed with language labels and copy buttons
 - **Streaming Responses**: Real-time SSE streaming with animated typing indicator
 - **Conversation Management**: Create, view, delete; conversations tagged with their agent
 
 ## Key Files
-- `app/index.tsx` - Home screen with agents grid and conversation list
-- `app/chat/[id].tsx` - Chat screen with agent-specific UI and streaming
+- `app/index.tsx` - Home screen with template gallery banner, agents grid, and personalized content
+- `app/chat/[id].tsx` - Chat screen with agent-specific UI, streaming, and preview navigation
+- `app/auth.tsx` - Sign in / Sign up screen
+- `app/projects.tsx` - My Projects dashboard with CRUD actions
+- `app/profile.tsx` - Profile/settings screen with account info
+- `app/preview.tsx` - Full-screen app preview with device frames, rotation, source view, share
+- `app/templates.tsx` - Template gallery screen with categories and curated prompt starters
+- `app/_layout.tsx` - Root layout with AuthProvider, ChatProvider, QueryClient
 - `constants/agents.ts` - Agent definitions (prompts, colors, icons, suggestions)
-- `server/routes.ts` - Express API with /api/chat endpoint (multi-model routing)
-- `server/models.ts` - Grok + Claude provider implementations with streaming
-- `lib/stream-chat.ts` - SSE streaming client
-- `lib/chat-context.tsx` - Chat state management
-- `components/*` - UI components (MessageBubble, AgentCard, ChatInput, etc.)
+- `constants/templates.ts` - Template category and template definitions (6 categories, 24 templates)
+- `constants/colors.ts` - Theme colors
+- `lib/auth-context.tsx` - Authentication state management (JWT, user, login/signup/logout)
+- `lib/chat-context.tsx` - Chat state (dual mode: local for guests, server-backed for logged-in)
+- `lib/stream-chat.ts` - SSE streaming client (passes agent system prompt to server)
+- `lib/query-client.ts` - React Query client and API helpers
+- `server/routes.ts` - Express API routes (auth, conversations, chat), elite design system prompts for all agents
+- `server/auth.ts` - JWT middleware, password hashing utilities
+- `server/storage.ts` - Database storage layer (Drizzle ORM)
+- `server/db.ts` - Database connection (PostgreSQL pool)
+- `shared/schema.ts` - Drizzle schema (users, conversations, messages)
+- `components/MessageBubble.tsx` - Rich message bubbles with markdown + HTML preview + preview navigation
+- `components/HtmlPreview.tsx` - Live HTML preview with browser-style dots, View Source toggle, fullscreen button
+- `components/AgentCard.tsx` - Agent selection card for home screen
+- `components/ConversationItem.tsx` - Conversation list item with agent badge
+- `components/ChatInput.tsx` - Message input with send button
+- `components/TypingIndicator.tsx` - Animated typing dots
 
 ## Color Theme
 - Primary: #162E23 (deep forest green)

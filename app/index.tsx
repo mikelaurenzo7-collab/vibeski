@@ -118,6 +118,25 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
+        <Pressable
+          onPress={() => {
+            if (Platform.OS !== 'web') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
+            router.push('/templates');
+          }}
+          style={({ pressed }) => [styles.templateBanner, pressed && styles.templateBannerPressed]}
+        >
+          <View style={styles.templateBannerIcon}>
+            <Feather name="grid" size={18} color={Colors.accent} />
+          </View>
+          <View style={styles.templateBannerText}>
+            <Text style={styles.templateBannerTitle}>Template Gallery</Text>
+            <Text style={styles.templateBannerSub}>Browse curated app templates to get started fast</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={Colors.warmGrayLight} />
+        </Pressable>
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Agents</Text>
           <Text style={styles.sectionSub}>{AGENTS.length} specialists</Text>
@@ -297,5 +316,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGrayLight,
+  },
+  templateBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+    gap: 12,
+    shadowColor: Colors.shadowLight,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  templateBannerPressed: {
+    backgroundColor: Colors.creamDark,
+    transform: [{ scale: 0.98 }],
+  },
+  templateBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.accentSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  templateBannerText: {
+    flex: 1,
+  },
+  templateBannerTitle: {
+    fontSize: 15,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    letterSpacing: -0.1,
+  },
+  templateBannerSub: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: Colors.warmGray,
+    marginTop: 2,
   },
 });

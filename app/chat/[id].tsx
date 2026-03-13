@@ -30,7 +30,7 @@ function generateUniqueId(): string {
 }
 
 export default function ChatScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, initialPrompt } = useLocalSearchParams<{ id: string; initialPrompt?: string }>();
   const insets = useSafeAreaInsets();
   const { getConversation, saveMessages } = useChat();
   const { isLoggedIn, isLoading: authLoading } = useAuth();
@@ -44,6 +44,7 @@ export default function ChatScreen() {
   const [showTyping, setShowTyping] = useState(false);
 
   const initializedRef = useRef(false);
+  const initialPromptSentRef = useRef(false);
   const latestMessagesRef = useRef<Message[]>([]);
 
   useEffect(() => {
@@ -62,6 +63,11 @@ export default function ChatScreen() {
         loadServerMessages();
       } else if (conversation?.messages) {
         setMessages(conversation.messages);
+      }
+
+      if (initialPrompt && !initialPromptSentRef.current && (!conversation?.messages || conversation.messages.length === 0)) {
+        initialPromptSentRef.current = true;
+        setTimeout(() => handleSend(initialPrompt), 500);
       }
     }
   }, [id, conversation?.messages, authLoading, isLoggedIn]);
@@ -161,6 +167,16 @@ export default function ChatScreen() {
     }
   };
 
+  const handleOpenPreview = (html: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    router.push({
+      pathname: '/preview',
+      params: { html, chatId: id },
+    });
+  };
+
   const handleBack = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -230,7 +246,7 @@ export default function ChatScreen() {
           data={reversedMessages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <MessageBubble role={item.role} content={item.content} />
+            <MessageBubble role={item.role} content={item.content} onOpenPreview={handleOpenPreview} />
           )}
           inverted={messages.length > 0}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}

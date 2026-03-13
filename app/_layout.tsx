@@ -26,6 +26,8 @@ function RootLayoutNav() {
       <Stack.Screen name="auth" />
       <Stack.Screen name="projects" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="preview" options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="templates" />
     </Stack>
   );
 }
