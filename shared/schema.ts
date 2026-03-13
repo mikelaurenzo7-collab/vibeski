@@ -38,6 +38,37 @@ export const userSettings = pgTable("user_settings", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("draft"),
+  slug: text("slug").unique(),
+  conversationId: integer("conversation_id").references(() => conversations.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const projectFiles = pgTable("project_files", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  filePath: text("file_path").notNull(),
+  content: text("content").notNull(),
+  fileType: text("file_type").notNull().default("text"),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const projectData = pgTable("project_data", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  collection: text("collection").notNull(),
+  key: text("key").notNull(),
+  value: text("value").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -71,3 +102,6 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Project = typeof projects.$inferSelect;
+export type ProjectFile = typeof projectFiles.$inferSelect;
+export type ProjectDataRow = typeof projectData.$inferSelect;

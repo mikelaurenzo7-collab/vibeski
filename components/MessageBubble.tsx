@@ -9,10 +9,12 @@ interface MessageBubbleProps {
   role: 'user' | 'assistant';
   content: string;
   onOpenPreview?: (html: string) => void;
+  projectId?: number | null;
+  onViewProject?: (projectId: number) => void;
 }
 
 interface ParsedBlock {
-  type: 'text' | 'code' | 'html-preview';
+  type: 'text' | 'code' | 'html-preview' | 'project';
   content: string;
   language?: string;
 }
@@ -32,7 +34,9 @@ function parseContent(content: string): ParsedBlock[] {
     const lang = match[1]?.toLowerCase() || '';
     const code = match[2]?.trim() || '';
 
-    if (lang === 'html' && code.includes('<') && (code.includes('<html') || code.includes('<!DOCTYPE') || code.includes('<body') || code.includes('<div'))) {
+    if (lang === 'project' || (code.includes('===FILE:') && code.includes('===\n'))) {
+      blocks.push({ type: 'project', content: code, language: 'project' });
+    } else if (lang === 'html' && code.includes('<') && (code.includes('<html') || code.includes('<!DOCTYPE') || code.includes('<body') || code.includes('<div'))) {
       blocks.push({ type: 'html-preview', content: code, language: 'html' });
     } else {
       blocks.push({ type: 'code', content: code, language: lang });
@@ -187,7 +191,32 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
   );
 }
 
-export function MessageBubble({ role, content, onOpenPreview }: MessageBubbleProps) {
+function ProjectCard({ onViewProject, projectId }: { onViewProject?: (id: number) => void; projectId?: number | null }) {
+  if (!projectId || !onViewProject) return null;
+
+  return (
+    <Pressable
+      onPress={() => {
+        if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onViewProject(projectId);
+      }}
+      style={({ pressed }) => [styles.projectCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+    >
+      <View style={styles.projectCardLeft}>
+        <View style={styles.projectCardIcon}>
+          <Feather name="box" size={16} color={Colors.accent} />
+        </View>
+        <View>
+          <Text style={styles.projectCardTitle}>Project Created</Text>
+          <Text style={styles.projectCardSub}>Tap to view, preview & deploy</Text>
+        </View>
+      </View>
+      <Feather name="arrow-right" size={16} color={Colors.accent} />
+    </Pressable>
+  );
+}
+
+export function MessageBubble({ role, content, onOpenPreview, projectId, onViewProject }: MessageBubbleProps) {
   const isUser = role === 'user';
 
   if (isUser) {
@@ -201,6 +230,7 @@ export function MessageBubble({ role, content, onOpenPreview }: MessageBubblePro
   }
 
   const blocks = parseContent(content);
+  const hasProject = blocks.some(b => b.type === 'project' || b.type === 'html-preview');
 
   return (
     <View style={styles.row}>
@@ -211,6 +241,17 @@ export function MessageBubble({ role, content, onOpenPreview }: MessageBubblePro
       </View>
       <View style={styles.assistantColumn}>
         {blocks.map((block, i) => {
+          if (block.type === 'project') {
+            const fileCount = (block.content.match(/===FILE:/g) || []).length;
+            return (
+              <View key={i} style={styles.projectBlock}>
+                <View style={styles.projectBlockHeader}>
+                  <Feather name="layers" size={14} color={Colors.accent} />
+                  <Text style={styles.projectBlockTitle}>{fileCount} file{fileCount !== 1 ? 's' : ''} generated</Text>
+                </View>
+              </View>
+            );
+          }
           if (block.type === 'html-preview') {
             return (
               <View key={i}>
@@ -227,6 +268,9 @@ export function MessageBubble({ role, content, onOpenPreview }: MessageBubblePro
             </View>
           );
         })}
+        {hasProject && projectId && (
+          <ProjectCard projectId={projectId} onViewProject={onViewProject} />
+        )}
       </View>
     </View>
   );
@@ -357,5 +401,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: '#D4D4D4',
+  },
+  projectBlock: {
+    backgroundColor: Colors.accentSubtle,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(201,162,78,0.15)',
+  },
+  projectBlockHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  projectBlockTitle: {
+    fontSize: 13,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.accent,
+  },
+  projectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 6,
+  },
+  projectCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  projectCardIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(201,162,78,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  projectCardTitle: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.white,
+  },
+  projectCardSub: {
+    fontSize: 11,
+    fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 1,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { useAuth, getAuthToken } from '@/lib/auth-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { streamChat } from '@/lib/stream-chat';
 import { getApiUrl } from '@/lib/query-client';
+import { parseMultiFileResponse } from '@/lib/file-parser';
 import { MessageBubble } from '@/components/MessageBubble';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { ChatInput } from '@/components/ChatInput';
@@ -50,9 +51,11 @@ export default function ChatScreen() {
     reason: 'limit_reached',
   });
 
+  const [projectId, setProjectId] = useState<number | null>(null);
   const initializedRef = useRef(false);
   const initialPromptSentRef = useRef(false);
   const latestMessagesRef = useRef<Message[]>([]);
+  const projectIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     latestMessagesRef.current = messages;
@@ -76,8 +79,30 @@ export default function ChatScreen() {
         initialPromptSentRef.current = true;
         setTimeout(() => handleSend(initialPrompt), 500);
       }
+
+      if (isLoggedIn && agent.id === 'builder') {
+        loadExistingProject();
+      }
     }
   }, [id, conversation?.messages, authLoading, isLoggedIn]);
+
+  const loadExistingProject = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token || !id) return;
+      const res = await fetch(
+        new URL(`/api/projects/by-conversation/${id}`, getApiUrl()).toString(),
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const existing = await res.json();
+        if (existing && existing.id) {
+          projectIdRef.current = existing.id;
+          setProjectId(existing.id);
+        }
+      }
+    } catch {}
+  };
 
   const loadServerMessages = async () => {
     try {
@@ -105,6 +130,53 @@ export default function ChatScreen() {
       }
     }
   };
+
+  const createOrUpdateProject = useCallback(async (responseContent: string, userPrompt: string) => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+
+      const parsedFiles = parseMultiFileResponse(responseContent);
+      if (parsedFiles.length === 0) return;
+
+      const baseUrl = getApiUrl();
+      const currentProjectId = projectIdRef.current;
+
+      if (currentProjectId) {
+        await fetch(new URL(`/api/projects/${currentProjectId}`, baseUrl).toString(), {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            files: parsedFiles.map(f => ({ filePath: f.path, content: f.content, fileType: f.type })),
+          }),
+        });
+      } else {
+        const projectName = userPrompt.length > 50 ? userPrompt.substring(0, 50) + '...' : userPrompt;
+        const res = await fetch(new URL('/api/projects', baseUrl).toString(), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: projectName,
+            description: userPrompt,
+            conversationId: parseInt(id || '0') || undefined,
+            files: parsedFiles.map(f => ({ filePath: f.path, content: f.content, fileType: f.type })),
+          }),
+        });
+        if (res.ok) {
+          const project = await res.json();
+          projectIdRef.current = project.id;
+          setProjectId(project.id);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to create/update project:', e);
+    }
+  }, [id]);
+
+  const handleViewProject = useCallback((pid: number) => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push({ pathname: '/project/[id]', params: { id: String(pid) } });
+  }, []);
 
   const handleSend = async (text: string) => {
     if (isStreaming) return;
@@ -158,6 +230,10 @@ export default function ChatScreen() {
       }, agent.id);
 
       refreshStatus();
+
+      if (agent.id === 'builder' && fullContent) {
+        createOrUpdateProject(fullContent, text);
+      }
     } catch (error) {
       setShowTyping(false);
 
@@ -277,7 +353,13 @@ export default function ChatScreen() {
           data={reversedMessages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <MessageBubble role={item.role} content={item.content} onOpenPreview={handleOpenPreview} />
+            <MessageBubble
+              role={item.role}
+              content={item.content}
+              onOpenPreview={handleOpenPreview}
+              projectId={item.role === 'assistant' ? projectId : undefined}
+              onViewProject={handleViewProject}
+            />
           )}
           inverted={messages.length > 0}
           ListHeaderComponent={showTyping ? <TypingIndicator /> : null}

@@ -61,9 +61,33 @@ FORMATTING RULES:
 
 const SHARED_BUILD_RULES = `
 WHEN ASKED TO BUILD OR CREATE SOMETHING (apps, websites, tools, dashboards, etc.):
-- ALWAYS generate a COMPLETE, self-contained HTML document with inline CSS and JavaScript
-- Wrap the entire HTML in a code block with the language tag \`\`\`html
-- The HTML MUST look like it was designed by a professional design studio
+- Generate a MULTI-FILE project using the ===FILE: filename=== delimiter format
+- Wrap ALL project files in a single code block with the language tag \`\`\`project
+- Each file starts with ===FILE: filename=== on its own line
+- Generate at minimum: index.html, style.css, script.js
+- The HTML should reference CSS via <link rel="stylesheet" href="style.css"> and JS via <script src="script.js"></script>
+
+MULTI-FILE FORMAT EXAMPLE:
+\`\`\`project
+===FILE: index.html===
+<!DOCTYPE html>
+<html>...</html>
+===FILE: style.css===
+:root { --primary: #162E23; }
+...
+===FILE: script.js===
+// App logic here
+\`\`\`
+
+DATA PERSISTENCE — when the app needs to save/load data:
+- Use the built-in Data API: fetch('/api/data/COLLECTION_NAME')
+- GET /api/data/COLLECTION — returns all items in collection
+- POST /api/data/COLLECTION with { key: "unique-id", value: { ...data } } — creates/updates item
+- DELETE /api/data/COLLECTION/KEY — deletes item
+- The data API works automatically in deployed projects — no configuration needed
+- Use this for: todo lists, user data, settings, form submissions, inventory, any persistent state
+- Generate a unique key for each item using Date.now().toString(36) + Math.random().toString(36).substr(2)
+- Example: fetch('/api/data/todos').then(r => r.json()).then(data => renderTodos(data))
 
 ELITE DESIGN STANDARDS (mandatory for every generated app):
 1. Typography: Include Google Fonts via CDN (Inter, Plus Jakarta Sans, or DM Sans). Use a proper type scale with font-weight variation (300-700). Apply letter-spacing (-0.02em for headings, 0.01em for body).
@@ -77,7 +101,7 @@ ELITE DESIGN STANDARDS (mandatory for every generated app):
 9. Mock Data: Populate with realistic, professional content — real-sounding names, plausible numbers, proper imagery using gradient placeholders or emoji icons.
 10. Multi-view: When appropriate, create multi-section or multi-page apps with tab/nav based navigation between views.
 
-- NEVER return just code snippets or partial code — always return a COMPLETE working HTML page
+- NEVER return just code snippets or partial code — always return a COMPLETE working project
 - The generated app should feel like a polished product, not a prototype`;
 
 
@@ -828,6 +852,254 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Webhook error:", error);
       res.status(400).json({ error: "Webhook processing failed" });
     }
+  });
+
+  app.get("/api/projects", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const userProjects = await storage.getUserProjects(userId);
+      res.json(userProjects);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch projects" });
+    }
+  });
+
+  app.post("/api/projects", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const { name, description, conversationId, files } = req.body;
+      if (!name) return res.status(400).json({ error: "Project name required" });
+
+      const project = await storage.createProject({
+        userId,
+        name,
+        description: description || '',
+        conversationId: conversationId || undefined,
+      });
+
+      if (files && Array.isArray(files) && files.length > 0) {
+        await storage.saveProjectFiles(
+          project.id,
+          files.map((f: any) => ({
+            filePath: f.path || f.filePath,
+            content: f.content,
+            fileType: f.type || f.fileType || 'text',
+          }))
+        );
+      }
+
+      res.status(201).json(project);
+    } catch (error) {
+      console.error("Create project error:", error);
+      res.status(500).json({ error: "Failed to create project" });
+    }
+  });
+
+  app.get("/api/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      const files = await storage.getProjectFiles(project.id);
+      res.json({ ...project, files });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch project" });
+    }
+  });
+
+  app.put("/api/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+
+      const { name, description, files } = req.body;
+      const updates: any = {};
+      if (name) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      const updated = await storage.updateProject(project.id, updates);
+
+      if (files && Array.isArray(files)) {
+        await storage.saveProjectFiles(
+          project.id,
+          files.map((f: any) => ({
+            filePath: f.path || f.filePath,
+            content: f.content,
+            fileType: f.type || f.fileType || 'text',
+          }))
+        );
+      }
+
+      const updatedFiles = await storage.getProjectFiles(project.id);
+      res.json({ ...updated, files: updatedFiles });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update project" });
+    }
+  });
+
+  app.delete("/api/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      await storage.deleteProject(project.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+  app.post("/api/projects/:id/deploy", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+
+      const files = await storage.getProjectFiles(project.id);
+      if (files.length === 0) return res.status(400).json({ error: "Project has no files to deploy" });
+
+      const slug = project.slug || project.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .substring(0, 40)
+        + '-' + Date.now().toString(36).slice(-4);
+
+      const updated = await storage.updateProject(project.id, { status: 'deployed', slug });
+
+      const protocol = req.header('x-forwarded-proto') || req.protocol || 'https';
+      const host = req.header('x-forwarded-host') || req.get('host');
+      const liveUrl = `${protocol}://${host}/live/${slug}/`;
+
+      res.json({ ...updated, liveUrl });
+    } catch (error) {
+      console.error("Deploy error:", error);
+      res.status(500).json({ error: "Failed to deploy project" });
+    }
+  });
+
+  app.post("/api/projects/:id/undeploy", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProject(parseInt(req.params.id));
+      if (!project || project.userId !== userId) return res.status(404).json({ error: "Project not found" });
+      const updated = await storage.updateProject(project.id, { status: 'draft' });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to undeploy project" });
+    }
+  });
+
+  app.get("/api/projects/by-conversation/:conversationId", async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const project = await storage.getProjectByConversation(parseInt(req.params.conversationId));
+      if (!project) return res.json(null);
+      if (project.userId !== userId) return res.status(403).json({ error: "Access denied" });
+      res.json(project);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch project" });
+    }
+  });
+
+  app.get("/live/:slug/api/data/:collection", async (req: Request, res: Response) => {
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).json({ error: "Project not found" });
+      const data = await storage.getProjectData(project.id, req.params.collection);
+      res.json(data.map(d => ({ id: d.id, key: d.key, value: JSON.parse(d.value), createdAt: d.createdAt, updatedAt: d.updatedAt })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch data" });
+    }
+  });
+
+  app.post("/live/:slug/api/data/:collection", async (req: Request, res: Response) => {
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).json({ error: "Project not found" });
+      const { key, value } = req.body;
+      if (!key) return res.status(400).json({ error: "Key required" });
+      const row = await storage.setProjectData(project.id, req.params.collection, key, JSON.stringify(value));
+      res.status(201).json({ id: row.id, key: row.key, value: JSON.parse(row.value), createdAt: row.createdAt, updatedAt: row.updatedAt });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save data" });
+    }
+  });
+
+  app.delete("/live/:slug/api/data/:collection/:key", async (req: Request, res: Response) => {
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).json({ error: "Project not found" });
+      await storage.deleteProjectData(project.id, req.params.collection, req.params.key);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete data" });
+    }
+  });
+
+  app.options("/live/:slug/api/data/:collection", (req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.sendStatus(204);
+  });
+
+  app.options("/live/:slug/api/data/:collection/:key", (req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.sendStatus(204);
+  });
+
+  app.get("/live/:slug/", async (req: Request, res: Response) => {
+    try {
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).send('Project not found');
+      const files = await storage.getProjectFiles(project.id);
+      const indexFile = files.find(f => f.filePath === 'index.html');
+      if (!indexFile) return res.status(404).send('No index.html found');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(indexFile.content);
+    } catch (error) {
+      res.status(500).send('Server error');
+    }
+  });
+
+  app.get("/live/:slug/:fileName", async (req: Request, res: Response) => {
+    try {
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).send('Project not found');
+      const files = await storage.getProjectFiles(project.id);
+      const file = files.find(f => f.filePath === req.params.fileName);
+      if (!file) return res.status(404).send('File not found');
+      const extMap: Record<string, string> = {
+        html: 'text/html', css: 'text/css', js: 'application/javascript',
+        json: 'application/json', svg: 'image/svg+xml', txt: 'text/plain',
+      };
+      const ext = req.params.fileName.split('.').pop()?.toLowerCase() || '';
+      const contentType = extMap[ext] || 'text/plain';
+      res.setHeader('Content-Type', `${contentType}; charset=utf-8`);
+      res.send(file.content);
+    } catch (error) {
+      res.status(500).send('Server error');
+    }
+  });
+
+  app.get("/live/:slug", (req: Request, res: Response) => {
+    res.redirect(`/live/${req.params.slug}/`);
   });
 
   const httpServer = createServer(app);
