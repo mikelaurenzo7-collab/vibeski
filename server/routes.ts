@@ -714,7 +714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? AGENT_PROMPTS[agentId]
         : DEFAULT_PROMPT;
 
-      incrementUsage(deviceId, agentId);
+      incrementUsage(deviceId, agentId, preferredModel);
 
       let conversationId: number | null = null;
       if (req.body.conversationId) {

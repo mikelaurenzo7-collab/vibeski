@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import type { SubscriptionTier, SubscriptionStatus } from '../shared/subscription';
-import { getCreditCost, getTierConfig } from '../shared/subscription';
+import { getCreditCost, getEffectiveCreditCost, getTierConfig } from '../shared/subscription';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -112,14 +112,14 @@ export function getSubscriptionStatus(deviceId: string): SubscriptionStatus & { 
   };
 }
 
-export function incrementUsage(deviceId: string, agentId?: string): number {
+export function incrementUsage(deviceId: string, agentId?: string, model?: string): number {
   const record = getUsage(deviceId);
   record.count++;
   usage.set(deviceId, record);
 
   const sub = getSubscription(deviceId);
   if (sub.tier !== 'free') {
-    const creditCost = getCreditCost(agentId || 'builder');
+    const creditCost = getEffectiveCreditCost(agentId || 'builder', model || 'raptor');
     const monthly = getMonthlyUsage(deviceId);
     monthly.creditsUsed += creditCost;
     monthlyUsage.set(deviceId, monthly);

@@ -45,6 +45,20 @@ export const CREDIT_COSTS: Record<string, number> = {
   'website-cloner': 3,
 };
 
+export const PREMIUM_MODEL_MULTIPLIER: Record<string, number> = {
+  raptor: 1,
+  openai: 1,
+  grok: 1,
+  gemini: 1,
+  anthropic: 5,
+};
+
+export function getEffectiveCreditCost(agentId: string, model: string): number {
+  const base = CREDIT_COSTS[agentId] || 1;
+  const multiplier = PREMIUM_MODEL_MULTIPLIER[model] || 1;
+  return base * multiplier;
+}
+
 export const TIERS: TierConfig[] = [
   {
     id: 'free',
@@ -77,11 +91,11 @@ export const TIERS: TierConfig[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 1900,
-    priceLabel: '$19',
-    annualPrice: 18200,
-    annualPriceLabel: '$182',
-    annualMonthly: '$15',
+    price: 1200,
+    priceLabel: '$12',
+    annualPrice: 10800,
+    annualPriceLabel: '$108',
+    annualMonthly: '$9',
     features: [
       'All 15 AI agents',
       'Live HTML previews',
@@ -94,6 +108,7 @@ export const TIERS: TierConfig[] = [
       'Unused credits don\'t roll over',
       '$0.05 per credit overage',
       '1-3 credits per generation',
+      'Claude uses 5x credits',
     ] as string[],
     limits: {
       dailyGenerations: 100,
@@ -107,11 +122,11 @@ export const TIERS: TierConfig[] = [
   {
     id: 'elite',
     name: 'Elite',
-    price: 4900,
-    priceLabel: '$49',
-    annualPrice: 47000,
-    annualPriceLabel: '$470',
-    annualMonthly: '$39',
+    price: 2900,
+    priceLabel: '$29',
+    annualPrice: 28800,
+    annualPriceLabel: '$288',
+    annualMonthly: '$24',
     features: [
       'Everything in Pro',
       'Fastest response speed',
@@ -124,6 +139,7 @@ export const TIERS: TierConfig[] = [
       'Unused credits don\'t roll over',
       '$0.03 per credit overage',
       '1-3 credits per generation',
+      'Claude uses 5x credits',
     ] as string[],
     limits: {
       dailyGenerations: -1,
