@@ -1,6 +1,5 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
-import OpenAI from "openai";
 import { storage } from "./storage";
 import { signupSchema, loginSchema } from "@shared/schema";
 import {
@@ -11,7 +10,7 @@ import {
   hashPassword,
   comparePassword,
 } from "./auth";
-import { GrokProvider, OpenAIProvider, getProviderForAgent } from "./models";
+import { createOrchestrator } from "./models";
 import {
   getSubscriptionStatus,
   incrementUsage,
@@ -21,16 +20,12 @@ import {
 } from "./subscription";
 import { canAccessAgent, getTierConfig } from "../shared/subscription";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+const orchestrator = createOrchestrator({
+  raptorApiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || '',
+  raptorBaseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  geminiApiKey: process.env.GOOGLE_API_KEY || '',
+  grokApiKey: process.env.GROK_API_KEY || '',
 });
-
-const grokProvider = new GrokProvider(process.env.GROK_API_KEY || '');
-const raptorProvider = new OpenAIProvider(
-  process.env.AI_INTEGRATIONS_OPENAI_API_KEY || '',
-  process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-);
 
 const SHARED_FORMAT_RULES = `
 FORMATTING RULES:
@@ -178,6 +173,34 @@ ${SHARED_FORMAT_RULES}`,
 const DEFAULT_PROMPT = AGENT_PROMPTS.builder;
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Debug test endpoint - remove after verifying streaming works
+  app.get("/api/test-stream", async (_req, res) => {
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.flushHeaders();
+    try {
+      const stream = await client.chat.completions.create({
+        model: 'gpt-4.1-mini',
+        messages: [{ role: 'user', content: 'Say hi in 3 words' }],
+        stream: true,
+        max_completion_tokens: 100,
+      });
+      for await (const chunk of stream) {
+        const c = chunk.choices[0]?.delta?.content || '';
+        if (c) res.write(`data: ${JSON.stringify({ content: c })}\n\n`);
+      }
+    } catch (e: any) {
+      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  });
+
   app.use(authMiddleware as any);
 
   app.post("/api/auth/signup", async (req: AuthRequest, res) => {
@@ -363,7 +386,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/chat", async (req, res) => {
-    console.log("[chat] Request received, agentId:", req.body?.agentId);
     try {
       const { messages, agentId } = req.body;
       const deviceId = req.headers['x-device-id'] as string || 'anonymous';
@@ -409,42 +431,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       incrementUsage(deviceId);
 
-      // Multi-model routing: Grok for creative, Raptor for analytical/code
-      const providerType = getProviderForAgent(agentId || 'builder');
-      const primaryProvider = providerType === 'grok' ? grokProvider : raptorProvider;
-      const fallbackProvider = providerType === 'grok' ? raptorProvider : null;
-
-      console.log(`[chat] Provider: ${primaryProvider.name}, prompt length: ${systemPrompt.length}`);
-
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("X-Accel-Buffering", "no");
       res.flushHeaders();
 
       let aborted = false;
-      req.on("close", () => { aborted = true; console.log("[chat] Client disconnected"); });
-
-      const streamFromProvider = async (provider: typeof primaryProvider) => {
-        console.log(`[chat] Starting stream from ${provider.name}...`);
-        for await (const chunk of provider.sendMessage(sanitized, systemPrompt)) {
-          if (aborted) break;
-          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
-        }
-        console.log(`[chat] Stream from ${provider.name} complete`);
-      };
+      req.on("close", () => { aborted = true; });
 
       try {
-        await streamFromProvider(primaryProvider);
-      } catch (error) {
-        console.error(`${primaryProvider.name} error${fallbackProvider ? ', falling back' : ''}:`, error);
-        if (!aborted && fallbackProvider) {
-          try {
-            await streamFromProvider(fallbackProvider);
-          } catch (fallbackError) {
-            console.error("Fallback error:", fallbackError);
-            res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
+        const OpenAI = (await import("openai")).default;
+        const client = new OpenAI({
+          apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+          baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+        });
+
+        const stream = await client.chat.completions.create({
+          model: 'gpt-4.1-mini',
+          messages: [
+            { role: 'system' as const, content: systemPrompt },
+            ...sanitized.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+          ],
+          stream: true,
+          max_completion_tokens: 16384,
+        });
+
+        for await (const chunk of stream) {
+          if (aborted) break;
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            res.write(`data: ${JSON.stringify({ content })}\n\n`);
           }
-        } else if (!aborted) {
+        }
+      } catch (error) {
+        console.error("Chat streaming failed:", error);
+        if (!aborted) {
           res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
         }
       }
@@ -464,28 +485,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/test-grok", async (_req, res) => {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.flushHeaders();
-    try {
-      console.log("[test-grok] Starting...");
-      for await (const chunk of grokProvider.sendMessage(
-        [{ role: "user", content: "Say hi in 3 words" }],
-        "Be concise."
-      )) {
-        console.log("[test-grok] chunk:", chunk);
-        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
-      }
-      console.log("[test-grok] Done");
-    } catch (e: any) {
-      console.error("[test-grok] Error:", e.message);
-      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
-    }
-    res.write("data: [DONE]\n\n");
-    res.end();
-  });
-
   app.post("/api/generate-image", async (req, res) => {
     try {
       const { prompt, sourceImage } = req.body;
@@ -498,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Prompt too long (max 2000 chars)" });
       }
 
-      const base64Image = await grokProvider.generateImage(
+      const base64Image = await orchestrator.grok.generateImage(
         prompt,
         sourceImage || undefined
       );
@@ -551,7 +550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.on("close", () => { aborted = true; });
 
       try {
-        for await (const chunk of grokProvider.sendMessageWithVision(
+        for await (const chunk of orchestrator.grok.sendMessageWithVision(
           messages,
           "You are a helpful visual analyst. Describe what you see accurately and in detail."
         )) {
