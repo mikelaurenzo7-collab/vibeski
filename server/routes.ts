@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import OpenAI from "openai";
 import { storage } from "./storage";
@@ -12,6 +12,14 @@ import {
   comparePassword,
 } from "./auth";
 import { GrokProvider, OpenAIProvider, getProviderForAgent } from "./models";
+import {
+  getSubscriptionStatus,
+  incrementUsage,
+  createCheckoutSession,
+  createPortalSession,
+  handleWebhook,
+} from "./subscription";
+import { canAccessAgent, getTierConfig } from "../shared/subscription";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -355,12 +363,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/chat", async (req, res) => {
+    console.log("[chat] Request received, agentId:", req.body?.agentId);
     try {
       const { messages, agentId } = req.body;
+      const deviceId = req.headers['x-device-id'] as string || 'anonymous';
 
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: "Messages array is required" });
       }
+
+      const subStatus = getSubscriptionStatus(deviceId);
+
+      if (!subStatus.canGenerate) {
+        return res.status(429).json({
+          error: "limit_reached",
+          message: "You've reached your daily generation limit. Upgrade your plan for more.",
+          status: subStatus,
+        });
+      }
+
+      if (typeof agentId === "string" && !canAccessAgent(subStatus.tier, agentId)) {
+        return res.status(403).json({
+          error: "agent_locked",
+          message: "This agent requires a Pro or Elite subscription.",
+          agentId,
+          tier: subStatus.tier,
+        });
+      }
+
+      const tierConfig = getTierConfig(subStatus.tier);
 
       const validRoles = new Set(["user", "assistant"]);
       const sanitized = messages
@@ -376,10 +407,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? AGENT_PROMPTS[agentId]
         : DEFAULT_PROMPT;
 
+      incrementUsage(deviceId);
+
       // Multi-model routing: Grok for creative, Raptor for analytical/code
       const providerType = getProviderForAgent(agentId || 'builder');
       const primaryProvider = providerType === 'grok' ? grokProvider : raptorProvider;
       const fallbackProvider = providerType === 'grok' ? raptorProvider : null;
+
+      console.log(`[chat] Provider: ${primaryProvider.name}, prompt length: ${systemPrompt.length}`);
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -387,13 +422,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.flushHeaders();
 
       let aborted = false;
-      req.on("close", () => { aborted = true; });
+      req.on("close", () => { aborted = true; console.log("[chat] Client disconnected"); });
 
       const streamFromProvider = async (provider: typeof primaryProvider) => {
+        console.log(`[chat] Starting stream from ${provider.name}...`);
         for await (const chunk of provider.sendMessage(sanitized, systemPrompt)) {
           if (aborted) break;
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
+        console.log(`[chat] Stream from ${provider.name} complete`);
       };
 
       try {
@@ -425,6 +462,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: "Failed to process chat request" });
       }
     }
+  });
+
+  app.get("/api/test-grok", async (_req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.flushHeaders();
+    try {
+      console.log("[test-grok] Starting...");
+      for await (const chunk of grokProvider.sendMessage(
+        [{ role: "user", content: "Say hi in 3 words" }],
+        "Be concise."
+      )) {
+        console.log("[test-grok] chunk:", chunk);
+        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+      }
+      console.log("[test-grok] Done");
+    } catch (e: any) {
+      console.error("[test-grok] Error:", e.message);
+      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
   });
 
   app.post("/api/generate-image", async (req, res) => {
@@ -518,6 +577,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ error: "Failed to analyze image" });
       }
+    }
+  });
+
+  app.get("/api/subscription/status", (req: Request, res: Response) => {
+    const deviceId = req.headers['x-device-id'] as string || 'anonymous';
+    const status = getSubscriptionStatus(deviceId);
+    res.json({
+      tier: status.tier,
+      dailyGenerationsUsed: status.dailyGenerationsUsed,
+      dailyGenerationsLimit: status.dailyGenerationsLimit,
+      canGenerate: status.canGenerate,
+    });
+  });
+
+  app.post("/api/subscription/checkout", async (req: Request, res: Response) => {
+    try {
+      const { tier, deviceId } = req.body;
+      if (!tier || !deviceId || (tier !== 'pro' && tier !== 'elite')) {
+        return res.status(400).json({ error: "Invalid tier or device ID" });
+      }
+
+      const protocol = req.header('x-forwarded-proto') || req.protocol || 'https';
+      const host = req.header('x-forwarded-host') || req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+
+      const url = await createCheckoutSession(
+        deviceId,
+        tier,
+        `${baseUrl}/?checkout=success`,
+        `${baseUrl}/?checkout=cancelled`,
+      );
+
+      if (!url) {
+        return res.status(503).json({ error: "Stripe is not configured. Please set up Stripe integration." });
+      }
+
+      res.json({ url });
+    } catch (error) {
+      console.error("Checkout error:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  app.post("/api/subscription/portal", async (req: Request, res: Response) => {
+    try {
+      const { deviceId } = req.body;
+      if (!deviceId) {
+        return res.status(400).json({ error: "Device ID required" });
+      }
+
+      const protocol = req.header('x-forwarded-proto') || req.protocol || 'https';
+      const host = req.header('x-forwarded-host') || req.get('host');
+      const returnUrl = `${protocol}://${host}/`;
+
+      const url = await createPortalSession(deviceId, returnUrl);
+      if (!url) {
+        return res.status(503).json({ error: "Billing portal unavailable" });
+      }
+
+      res.json({ url });
+    } catch (error) {
+      console.error("Portal error:", error);
+      res.status(500).json({ error: "Failed to create portal session" });
+    }
+  });
+
+  app.post("/api/subscription/webhook", async (req: Request, res: Response) => {
+    try {
+      const signature = req.headers['stripe-signature'] as string;
+      if (!signature) {
+        return res.status(400).json({ error: "Missing stripe-signature header" });
+      }
+
+      await handleWebhook(req.rawBody as Buffer, signature);
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Webhook error:", error);
+      res.status(400).json({ error: "Webhook processing failed" });
     }
   });
 

@@ -1,5 +1,17 @@
 import { fetch } from 'expo/fetch';
 import { getApiUrl } from '@/lib/query-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const DEVICE_ID_KEY = '@field_of_dreams_device_id';
+
+async function getDeviceId(): Promise<string> {
+  try {
+    const id = await AsyncStorage.getItem(DEVICE_ID_KEY);
+    return id || 'anonymous';
+  } catch {
+    return 'anonymous';
+  }
+}
 
 export async function streamChat(
   messages: { role: string; content: string }[],
@@ -7,6 +19,7 @@ export async function streamChat(
   agentId?: string
 ) {
   const baseUrl = getApiUrl();
+  const deviceId = await getDeviceId();
 
   const body: Record<string, unknown> = { messages };
   if (agentId) {
@@ -18,9 +31,20 @@ export async function streamChat(
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
+      'x-device-id': deviceId,
     },
     body: JSON.stringify(body),
   });
+
+  if (response.status === 429) {
+    const data = await response.json();
+    throw new Error('LIMIT_REACHED');
+  }
+
+  if (response.status === 403) {
+    const data = await response.json();
+    throw new Error('AGENT_LOCKED');
+  }
 
   if (!response.ok) throw new Error('Failed to get response');
 
