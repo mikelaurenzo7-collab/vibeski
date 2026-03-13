@@ -141,6 +141,24 @@ ELITE DESIGN STANDARDS (mandatory for every generated app):
 11. Advanced Patterns: Include search/filter functionality on data lists. Add sorting capabilities. Implement pagination or infinite scroll. Use modals/dialogs for forms and confirmations. Add export functionality (CSV, PDF via print). Include keyboard navigation and focus management.
 12. Performance: Lazy load images with loading="lazy". Debounce search inputs. Use requestAnimationFrame for smooth animations. Minimize DOM manipulation with document fragments.
 
+ASSET PIPELINE (mandatory for every generated app):
+1. Favicon: Always include a favicon. Use an SVG data URI with an emoji: <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>EMOJI</text></svg>">
+2. Open Graph Meta Tags: Include og:title, og:description, og:type, og:image. Generate a gradient OG image placeholder using an SVG data URI.
+3. Web App Manifest: Include a manifest.json file with name, short_name, theme_color, background_color, display: "standalone", icons array.
+4. Structured Data: Add JSON-LD structured data in a <script type="application/ld+json"> tag — at minimum WebSite or WebApplication schema.
+5. Images: Use https://picsum.photos for realistic placeholder images (e.g., https://picsum.photos/800/400?random=1). Never use broken image URLs.
+6. Touch Icon: Include <link rel="apple-touch-icon"> with an SVG data URI.
+7. Print Stylesheet: Add @media print styles that hide navigation and optimize layout for printing.
+
+FORM SUBMISSIONS — when the app includes contact forms, lead capture, or any user input:
+- Submit forms to the built-in Forms API: fetch('/api/forms/FORM_NAME', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(formData) })
+- Use descriptive form names: 'contact', 'newsletter', 'booking', 'feedback', 'inquiry'
+- Always show a success message after submission with a smooth animation
+- Always validate inputs on the client side before submitting
+- Include loading state on the submit button during submission
+
+ANALYTICS — every deployed app automatically tracks page views. No code needed from the developer.
+
 WHEN USER ASKS FOR MODIFICATIONS:
 - Preserve ALL existing code and functionality
 - Only modify exactly what was requested
@@ -447,6 +465,52 @@ PERSONALITY & RESPONSE STYLE:
 - Include responsive breakpoints and mobile layouts
 - Suggest customization options after delivering the design
 - When combining inspiration from multiple sites, note which elements came from where
+${SHARED_FORMAT_RULES}`,
+
+  'qa-tester': `You are QA Tester — an expert quality assurance engineer who audits web applications for bugs, accessibility issues, performance problems, and UX flaws.
+
+CORE CAPABILITIES:
+- Accessibility auditing (WCAG 2.1 AA compliance)
+- Responsive design testing across breakpoints
+- Performance analysis and optimization recommendations
+- SEO validation and meta tag auditing
+- Code quality review (HTML semantics, CSS efficiency, JS best practices)
+- Cross-browser compatibility assessment
+- Form validation and user flow testing
+- Security review (XSS prevention, input sanitization)
+
+WHEN ANALYZING A PROJECT:
+Structure your QA report with these sections:
+
+## QA Report Card
+Give an overall grade (A through F) with a brief summary.
+
+## Critical Issues (Must Fix)
+Issues that break functionality, accessibility, or security. Number each with severity.
+
+## Warnings (Should Fix)
+Issues that hurt UX, performance, or SEO but don't break the app.
+
+## Passed Checks
+What the app does well — acknowledge good practices.
+
+## Recommendations
+Specific code fixes with before/after examples.
+
+ANALYSIS CHECKLIST:
+1. **Accessibility**: Check for alt text on images, ARIA labels on interactive elements, color contrast ratios (4.5:1 minimum), keyboard navigation, focus indicators, semantic HTML, form labels
+2. **Responsiveness**: Test at 375px (mobile), 768px (tablet), 1024px (laptop), 1280px (desktop). Check touch targets (min 44px), font readability, overflow/scroll issues, image scaling
+3. **Performance**: Check for render-blocking resources, unoptimized images, excessive DOM elements, heavy animations, unused CSS/JS, efficient selectors
+4. **SEO**: Check meta title/description, OG tags, heading hierarchy (h1 only once), semantic HTML, structured data, canonical URL, mobile viewport tag
+5. **Code Quality**: Validate HTML structure, check for inline styles that should be classes, JS error handling, event listener cleanup, memory leaks, console errors
+6. **UX**: Check loading states, empty states, error states, form validation feedback, smooth transitions, consistent spacing, clear CTAs
+7. **Security**: Check for innerHTML usage (XSS risk), eval() calls, unescaped user input, exposed API keys, CORS configuration
+
+PERSONALITY:
+- Thorough but constructive — always pair criticism with solutions
+- Prioritize issues by impact — critical bugs first, nice-to-haves last
+- Provide specific code fixes, not vague suggestions
+- Celebrate what's done well alongside what needs improvement
 ${SHARED_FORMAT_RULES}`,
 };
 
@@ -1446,6 +1510,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  app.options("/live/:slug/api/forms/:formName", (req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.sendStatus(204);
+  });
+
+  app.post("/live/:slug/api/forms/:formName", async (req: Request, res: Response) => {
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).json({ error: "Project not found" });
+      const formName = req.params.formName.replace(/[^a-zA-Z0-9_-]/g, '');
+      const submission = {
+        ...req.body,
+        _submittedAt: new Date().toISOString(),
+        _ip: req.ip || 'unknown',
+        _userAgent: req.headers['user-agent'] || 'unknown',
+      };
+      const key = Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+      await storage.setProjectData(project.id, `form_${formName}`, key, JSON.stringify(submission));
+      res.status(201).json({ success: true, id: key });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save form submission" });
+    }
+  });
+
+  app.get("/live/:slug/api/forms/:formName", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).json({ error: "Project not found" });
+      if (project.userId !== req.userId) return res.status(403).json({ error: "Not authorized" });
+      const formName = req.params.formName.replace(/[^a-zA-Z0-9_-]/g, '');
+      const data = await storage.getProjectData(project.id, `form_${formName}`);
+      const submissions = data.map(d => ({ id: d.key, ...JSON.parse(d.value) }));
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch submissions" });
+    }
+  });
+
+  app.options("/live/:slug/api/analytics", (req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.sendStatus(204);
+  });
+
+  app.post("/live/:slug/api/analytics", async (req: Request, res: Response) => {
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      const project = await storage.getProjectBySlug(req.params.slug);
+      if (!project || project.status !== 'deployed') return res.status(404).json({ error: "Project not found" });
+      const event = {
+        page: req.body.page || '/',
+        referrer: req.body.referrer || req.headers.referer || '',
+        userAgent: req.headers['user-agent'] || '',
+        timestamp: new Date().toISOString(),
+        device: /Mobile|Android|iPhone/i.test(req.headers['user-agent'] || '') ? 'mobile' : 'desktop',
+      };
+      const key = Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+      await storage.setProjectData(project.id, 'analytics', key, JSON.stringify(event));
+      res.status(201).json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to track analytics" });
+    }
+  });
+
+  app.get("/api/projects/:id/analytics", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      if (!project || project.userId !== req.userId) return res.status(404).json({ error: "Project not found" });
+      const data = await storage.getProjectData(projectId, 'analytics');
+      const events = data.map(d => JSON.parse(d.value));
+      const totalViews = events.length;
+      const deviceBreakdown: Record<string, number> = {};
+      const pageViews: Record<string, number> = {};
+      const dailyViews: Record<string, number> = {};
+      events.forEach((e: any) => {
+        deviceBreakdown[e.device] = (deviceBreakdown[e.device] || 0) + 1;
+        pageViews[e.page] = (pageViews[e.page] || 0) + 1;
+        const day = e.timestamp?.split('T')[0] || 'unknown';
+        dailyViews[day] = (dailyViews[day] || 0) + 1;
+      });
+      res.json({ totalViews, deviceBreakdown, pageViews, dailyViews, recentEvents: events.slice(-50).reverse() });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get("/api/projects/:id/forms", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      if (!project || project.userId !== req.userId) return res.status(404).json({ error: "Project not found" });
+      const allData = await storage.getProjectDataByPrefix(projectId, 'form_');
+      const forms: Record<string, any[]> = {};
+      for (const d of allData) {
+        const formName = d.collection.replace('form_', '');
+        if (!forms[formName]) forms[formName] = [];
+        forms[formName].push({ id: d.key, ...JSON.parse(d.value) });
+      }
+      res.json(forms);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch form data" });
+    }
+  });
+
+  app.get("/api/connectors", requireAuth, async (req: AuthRequest, res: Response) => {
+    const connectors = [
+      { id: 'google-sheets', name: 'Google Sheets', description: 'Read and write data from Google Sheets', icon: 'grid', category: 'Data', status: 'available' },
+      { id: 'stripe', name: 'Stripe', description: 'Accept payments and manage subscriptions', icon: 'credit-card', category: 'Payments', status: 'available' },
+      { id: 'google-calendar', name: 'Google Calendar', description: 'Manage events and scheduling', icon: 'calendar', category: 'Productivity', status: 'coming_soon' },
+      { id: 'sendgrid', name: 'SendGrid', description: 'Send transactional and marketing emails', icon: 'mail', category: 'Communication', status: 'coming_soon' },
+      { id: 'notion', name: 'Notion', description: 'Pull content from Notion pages and databases', icon: 'book', category: 'Content', status: 'coming_soon' },
+      { id: 'airtable', name: 'Airtable', description: 'Connect to Airtable bases as a data source', icon: 'database', category: 'Data', status: 'coming_soon' },
+      { id: 'supabase', name: 'Supabase', description: 'Full backend with auth, database, and storage', icon: 'server', category: 'Backend', status: 'coming_soon' },
+      { id: 'shopify', name: 'Shopify', description: 'E-commerce integration for product and order data', icon: 'shopping-cart', category: 'E-commerce', status: 'coming_soon' },
+      { id: 'slack', name: 'Slack', description: 'Send notifications and messages to Slack channels', icon: 'message-square', category: 'Communication', status: 'coming_soon' },
+      { id: 'github', name: 'GitHub', description: 'Export and version control your projects', icon: 'github', category: 'Developer', status: 'coming_soon' },
+    ];
+    res.json(connectors);
+  });
+
   app.get("/live/:slug/", async (req: Request, res: Response) => {
     try {
       const project = await storage.getProjectBySlug(req.params.slug);
@@ -1453,8 +1642,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const files = await storage.getProjectFiles(project.id);
       const indexFile = files.find(f => f.filePath === 'index.html');
       if (!indexFile) return res.status(404).send('No index.html found');
+
+      let html = indexFile.content;
+      const analyticsSnippet = `<script>(function(){var s='${req.params.slug}';try{fetch('/live/'+s+'/api/analytics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page:location.pathname,referrer:document.referrer})}).catch(function(){});}catch(e){}})()</script>`;
+      html = html.replace('</body>', analyticsSnippet + '</body>');
+
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.send(indexFile.content);
+      res.send(html);
     } catch (error) {
       res.status(500).send('Server error');
     }

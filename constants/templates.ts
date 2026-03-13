@@ -220,4 +220,72 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
       },
     ],
   },
+  {
+    id: 'business',
+    name: 'Business',
+    description: 'Professional sites for companies & teams',
+    icon: 'briefcase',
+    color: '#2563EB',
+    colorLight: 'rgba(37, 99, 235, 0.08)',
+    templates: [
+      {
+        id: 'consulting-firm',
+        label: 'Consulting Firm',
+        prompt: 'Build a premium consulting firm website with a bold hero section with a background video-style gradient, services grid with hover card flips, case studies with before/after metrics, team bios with social links, and a contact form with service selector dropdown. Use a navy blue and white palette with gold accents, DM Sans typography, and polished animations.',
+        icon: 'award',
+      },
+      {
+        id: 'real-estate',
+        label: 'Real Estate',
+        prompt: 'Build a luxury real estate listing page with a full-bleed property image gallery, property details with icon cards (beds, baths, sqft), interactive mortgage calculator, neighborhood map placeholder, agent contact card, and similar listings grid. Use an elegant dark theme with marble-white cards and gold accents.',
+        icon: 'home',
+      },
+      {
+        id: 'law-firm',
+        label: 'Law Firm',
+        prompt: 'Build a professional law firm website with a distinguished hero section, practice areas with icon cards, attorney profiles with credentials, client testimonials, case results statistics, and consultation request form. Use a classic navy and silver palette with serif headings and sans-serif body text.',
+        icon: 'shield',
+      },
+      {
+        id: 'startup-landing',
+        label: 'Startup Pitch',
+        prompt: 'Build a startup pitch page for an AI company with a bold animated headline, problem/solution sections with icon illustrations, traction metrics with animated counters, team section with glassmorphic cards, investor logos marquee, and a CTA to request demo. Use a modern dark gradient with vibrant purple-to-cyan accents.',
+        icon: 'rocket',
+      },
+    ],
+  },
+  {
+    id: 'internal-tools',
+    name: 'Internal Tools',
+    description: 'Admin panels, CRMs & team utilities',
+    icon: 'settings',
+    color: '#7C3AED',
+    colorLight: 'rgba(124, 58, 237, 0.08)',
+    templates: [
+      {
+        id: 'crm-dashboard',
+        label: 'CRM Dashboard',
+        prompt: 'Build a CRM dashboard with a pipeline view showing deal stages as columns, contact cards with avatar/name/company/value, drag-and-drop styled cards between stages, deal value totals per stage, search and filter bar, and a new deal modal form. Use a clean light theme with indigo accents and modern card design.',
+        icon: 'users',
+      },
+      {
+        id: 'inventory-tracker',
+        label: 'Inventory Tracker',
+        prompt: 'Build an inventory management system with a product table with sortable columns, stock level indicators (low/medium/high with color coding), category filters, add/edit product modal, search bar, and export to CSV button. Use a professional light theme with emerald accents and clean data table design.',
+        icon: 'package',
+      },
+      {
+        id: 'booking-system',
+        label: 'Booking System',
+        prompt: 'Build an appointment booking system with a weekly calendar view, time slot grid with available/booked indicators, booking form with service/date/time selection, upcoming appointments list, and a day detail sidebar. Use a warm cream and teal palette with smooth transitions and clean typography.',
+        icon: 'calendar',
+      },
+      {
+        id: 'employee-directory',
+        label: 'Team Directory',
+        prompt: 'Build an employee directory with a searchable card grid, department filter tabs, employee detail modal with contact info/skills/bio, org chart view toggle, and team statistics cards. Use a friendly light theme with blue accents, rounded avatars, and smooth card hover effects.',
+        icon: 'user-check',
+      },
+    ],
+  },
 ];

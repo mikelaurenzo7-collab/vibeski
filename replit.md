@@ -22,7 +22,7 @@ The application is built with an Expo React Native frontend utilizing Expo Route
 - **Authentication**: A welcome screen for unauthenticated users, with an auth guard redirecting to `/auth` for protected screens, and a branded splash screen during auth state hydration.
 
 **Technical Implementations & Features:**
-- **Agent System**: 15 built-in AI agents categorized as "Core Agents" (Builder, Strategist, Writer, Code, Designer, Analyst) and "Tool Agents" (Branding, Thinker, SEO Pro, Page Gen, Content, Converter, GitHub, Optimizer, Cloner), each with specific functionalities.
+- **Agent System**: 16 built-in AI agents categorized as "Core Agents" (Builder, Strategist, Writer, Code, Designer, Analyst) and "Tool Agents" (Branding, Thinker, SEO Pro, Page Gen, Content, Converter, GitHub, Optimizer, Cloner, QA Tester), each with specific functionalities.
 - **Live Previews**: Builder, Code, and Designer agents offer live HTML previews for generated web applications, with a dedicated full-screen preview mode including device frames and source view.
 - **Project Management**: Comprehensive project builder system allowing multi-file generation, saving to a database, inline file editing, version history, and one-click deployment to public URLs (`/live/:slug/`). Projects support data persistence via a per-project data API.
 - **Conversation Management**: Features include creation, viewing, and deletion of conversations, with agent tagging and an intelligent memory system that extracts user preferences, tech stack, and business context for personalized responses. Conversation summarization is implemented for longer dialogues.
@@ -52,3 +52,11 @@ The application is built with an Expo React Native frontend utilizing Expo Route
 - **Agent-to-Agent Handoff**: After AI responses, contextual "Continue with..." chips suggest related agents (`components/AgentHandoff.tsx`). Each agent in `constants/agents.ts` has a `handoffs` array mapping to relevant follow-up agents with labels and descriptions.
 - **Landing Page Market Positioning**: Hero copy emphasizes "15 AI agents for less than one ChatGPT subscription." Competitor comparison table, transparency pledge, trust signals (security, Stripe, AI memory, dual models, cross-platform), and mobile-responsive layouts.
 - **Cost Transparency Pledge**: "No surprise bills. Ever." messaging on pricing screen and landing page with guarantee boxes explaining credit-based billing.
+
+## Deployed App Capabilities
+- **Form Submission Collection**: Deployed apps can collect form submissions via `POST /live/:slug/api/forms/:formName`. Submissions stored in project_data with `form_<name>` collections. App owners can view all submissions in the project detail screen's Forms tab. Builder agent auto-generates forms that POST to this API.
+- **Built-in Analytics**: Analytics tracking snippet auto-injected into all deployed project HTML. Tracks page views, device type (mobile/desktop), referrers. Events stored in project_data with `analytics` collection. Project detail screen has Analytics tab with total views, device breakdown, daily views chart, and top pages.
+- **Asset Pipeline**: Builder agent system prompt mandates: favicon (SVG emoji), OG meta tags, web app manifest, structured data (JSON-LD), picsum.photos placeholders, apple-touch-icon, print stylesheet for every generated app.
+- **QA Agent**: New QA Tester agent runs accessibility (WCAG 2.1 AA), responsiveness, performance, SEO, code quality, UX, and security audits. Structured QA reports with grades and specific code fixes.
+- **Template Gallery**: 8 categories with 32 templates: Landing Pages, Dashboards, Portfolios, Tools & Utilities, Games, Storefronts, Business, Internal Tools.
+- **OAuth Connector Infrastructure**: GET /api/connectors endpoint lists available connectors (Google Sheets, Stripe available; Calendar, SendGrid, Notion, Airtable, Supabase, Shopify coming soon). Connector management UI in Command Center's Integrations tab.
