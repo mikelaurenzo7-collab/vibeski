@@ -7,91 +7,88 @@ import {
   StyleSheet,
   Platform,
   Alert,
-  TextInput,
-  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Colors from '@/constants/colors';
-import { getAgent } from '@/constants/agents';
-import { useChat, type Conversation } from '@/lib/chat-context';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, getAuthToken } from '@/lib/auth-context';
+import { getApiUrl } from '@/lib/query-client';
+
+interface Project {
+  id: number;
+  name: string;
+  description: string;
+  status: string;
+  slug: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function ProjectsScreen() {
   const insets = useSafeAreaInsets();
-  const { conversations, deleteConversation, updateConversation, duplicateConversation } = useChat();
   const { isLoggedIn } = useAuth();
+  const queryClient = useQueryClient();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
-  const [renameId, setRenameId] = useState<string | null>(null);
-  const [renameTitle, setRenameTitle] = useState('');
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const { data: projects = [], isLoading } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+    queryFn: async () => {
+      const token = getAuthToken();
+      if (!token) return [];
+      const res = await fetch(new URL('/api/projects', getApiUrl()).toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isLoggedIn,
+  });
 
-  const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
+  const deleteMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const token = getAuthToken();
+      await fetch(new URL(`/api/projects/${projectId}`, getApiUrl()).toString(), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    },
+  });
+
+  const [menuId, setMenuId] = useState<number | null>(null);
 
   const handleBack = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
   };
 
-  const handleOpenChat = (id: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    router.push({ pathname: '/chat/[id]', params: { id } });
+  const handleOpen = (projectId: number) => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/project/[id]', params: { id: String(projectId) } });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (projectId: number) => {
     setMenuId(null);
     if (Platform.OS === 'web') {
-      deleteConversation(id);
+      deleteMutation.mutate(projectId);
       return;
     }
     Alert.alert('Delete Project', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          if (Platform.OS !== 'web') {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-          deleteConversation(id);
-        },
-      },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteMutation.mutate(projectId) },
     ]);
   };
 
-  const handleRename = (id: string, currentTitle: string) => {
-    setMenuId(null);
-    setRenameId(id);
-    setRenameTitle(currentTitle);
-  };
-
-  const handleRenameSubmit = () => {
-    if (renameId && renameTitle.trim()) {
-      updateConversation(renameId, { title: renameTitle.trim() });
-    }
-    setRenameId(null);
-    setRenameTitle('');
-  };
-
-  const handleDuplicate = async (id: string) => {
-    setMenuId(null);
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    await duplicateConversation(id);
-  };
-
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -108,25 +105,33 @@ export default function ProjectsScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const renderProject = ({ item }: { item: Conversation }) => {
-    const agent = getAgent(item.agentId);
-    const lastMsg = item.messages.length > 0
-      ? item.messages[item.messages.length - 1].content.slice(0, 80)
-      : 'No messages yet';
+  const renderProject = ({ item }: { item: Project }) => {
+    const isDeployed = item.status === 'deployed';
 
     return (
       <Pressable
-        onPress={() => handleOpenChat(item.id)}
+        onPress={() => handleOpen(item.id)}
         onLongPress={() => setMenuId(item.id)}
         style={({ pressed }) => [styles.projectCard, pressed && styles.projectCardPressed]}
       >
         <View style={styles.projectTop}>
-          <View style={[styles.agentBadge, { backgroundColor: agent.colorLight }]}>
-            <Feather name={agent.icon} size={14} color={agent.color} />
+          <View style={[styles.iconBadge, isDeployed ? styles.iconBadgeLive : styles.iconBadgeDraft]}>
+            <Feather
+              name={isDeployed ? 'globe' : 'box'}
+              size={16}
+              color={isDeployed ? '#28C840' : Colors.accent}
+            />
           </View>
           <View style={styles.projectInfo}>
-            <Text style={styles.projectTitle} numberOfLines={1}>{item.title}</Text>
-            <Text style={styles.projectAgent}>{agent.name}</Text>
+            <Text style={styles.projectTitle} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.projectMeta}>
+              <View style={[styles.statusPill, isDeployed ? styles.statusPillLive : styles.statusPillDraft]}>
+                <View style={[styles.statusDotSmall, { backgroundColor: isDeployed ? '#28C840' : Colors.warmGrayLight }]} />
+                <Text style={[styles.statusLabel, { color: isDeployed ? '#28C840' : Colors.warmGray }]}>
+                  {isDeployed ? 'Live' : 'Draft'}
+                </Text>
+              </View>
+            </View>
           </View>
           <Pressable
             onPress={() => setMenuId(menuId === item.id ? null : item.id)}
@@ -137,36 +142,28 @@ export default function ProjectsScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.projectSnippet} numberOfLines={2}>{lastMsg}</Text>
+        {item.description ? (
+          <Text style={styles.projectDesc} numberOfLines={2}>{item.description}</Text>
+        ) : null}
 
         <View style={styles.projectBottom}>
           <Text style={styles.projectDate}>{formatDate(item.updatedAt)}</Text>
-          <Text style={styles.projectMsgCount}>
-            {item.messages.length} message{item.messages.length !== 1 ? 's' : ''}
-          </Text>
+          {isDeployed && item.slug && (
+            <View style={styles.slugBadge}>
+              <Feather name="link" size={10} color={Colors.warmGrayLight} />
+              <Text style={styles.slugText} numberOfLines={1}>/{item.slug}</Text>
+            </View>
+          )}
         </View>
 
         {menuId === item.id && (
           <View style={styles.actionMenu}>
-            <Pressable
-              onPress={() => handleRename(item.id, item.title)}
-              style={styles.actionItem}
-            >
-              <Feather name="edit-2" size={14} color={Colors.black} />
-              <Text style={styles.actionText}>Rename</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => handleDuplicate(item.id)}
-              style={styles.actionItem}
-            >
-              <Feather name="copy" size={14} color={Colors.black} />
-              <Text style={styles.actionText}>Duplicate</Text>
+            <Pressable onPress={() => { setMenuId(null); handleOpen(item.id); }} style={styles.actionItem}>
+              <Feather name="eye" size={14} color={Colors.black} />
+              <Text style={styles.actionText}>View</Text>
             </Pressable>
             <View style={styles.actionDivider} />
-            <Pressable
-              onPress={() => handleDelete(item.id)}
-              style={styles.actionItem}
-            >
+            <Pressable onPress={() => handleDelete(item.id)} style={styles.actionItem}>
               <Feather name="trash-2" size={14} color={Colors.error} />
               <Text style={[styles.actionText, { color: Colors.error }]}>Delete</Text>
             </Pressable>
@@ -179,12 +176,12 @@ export default function ProjectsScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIcon}>
-        <Feather name="folder" size={32} color={Colors.warmGrayLight} />
+        <Feather name="layers" size={32} color={Colors.warmGrayLight} />
       </View>
       <Text style={styles.emptyTitle}>No projects yet</Text>
       <Text style={styles.emptySubtitle}>
         {isLoggedIn
-          ? 'Start a conversation with an agent to create your first project'
+          ? 'Chat with the Builder agent to generate your first app'
           : 'Sign in to save and manage your projects'}
       </Text>
       <Pressable
@@ -202,64 +199,29 @@ export default function ProjectsScreen() {
     <View style={[styles.screen, { paddingBottom: webBottomInset }]}>
       <StatusBar style="light" />
       <View style={[styles.header, { paddingTop: (insets.top || webTopInset) + 8 }]}>
-        <Pressable
-          onPress={handleBack}
-          hitSlop={12}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-        >
+        <Pressable onPress={handleBack} hitSlop={12} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}>
           <Feather name="chevron-left" size={22} color="rgba(255,255,255,0.7)" />
         </Pressable>
         <Text style={styles.headerTitle}>My Projects</Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerRight}>
+          <Text style={styles.projectCount}>{projects.length}</Text>
+        </View>
       </View>
 
-      <FlatList
-        data={sortedConversations}
-        keyExtractor={(item) => item.id}
-        renderItem={renderProject}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={[
-          styles.listContent,
-          sortedConversations.length === 0 && styles.listEmpty,
-        ]}
-        showsVerticalScrollIndicator={false}
-      />
-
-      <Modal
-        visible={!!renameId}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setRenameId(null)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setRenameId(null)}>
-          <Pressable style={styles.modalContent} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Rename Project</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={renameTitle}
-              onChangeText={setRenameTitle}
-              autoFocus
-              placeholder="Project name"
-              placeholderTextColor={Colors.warmGrayLight}
-              onSubmitEditing={handleRenameSubmit}
-            />
-            <View style={styles.modalButtons}>
-              <Pressable
-                onPress={() => setRenameId(null)}
-                style={[styles.modalBtn, styles.modalBtnCancel]}
-              >
-                <Text style={styles.modalBtnCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleRenameSubmit}
-                style={[styles.modalBtn, styles.modalBtnSave]}
-              >
-                <Text style={styles.modalBtnSaveText}>Save</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+        </View>
+      ) : (
+        <FlatList
+          data={projects}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderProject}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={[styles.listContent, projects.length === 0 && styles.listEmpty]}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
@@ -291,8 +253,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: -0.2,
   },
-  headerSpacer: {
+  headerRight: {
     width: 36,
+    alignItems: 'flex-end',
+  },
+  projectCount: {
+    fontSize: 14,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.accent,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listContent: {
     padding: 16,
@@ -317,14 +290,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  agentBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconBadgeLive: {
+    backgroundColor: 'rgba(40,200,64,0.08)',
+  },
+  iconBadgeDraft: {
+    backgroundColor: Colors.accentSubtle,
   },
   projectInfo: {
     flex: 1,
@@ -335,11 +314,34 @@ const styles = StyleSheet.create({
     color: Colors.black,
     letterSpacing: -0.2,
   },
-  projectAgent: {
-    fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
-    color: Colors.warmGray,
-    marginTop: 1,
+  projectMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 3,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusPillLive: {
+    backgroundColor: 'rgba(40,200,64,0.08)',
+  },
+  statusPillDraft: {
+    backgroundColor: Colors.overlay,
+  },
+  statusDotSmall: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  statusLabel: {
+    fontSize: 11,
+    fontFamily: 'DMSans_600SemiBold',
   },
   moreBtn: {
     width: 32,
@@ -348,7 +350,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  projectSnippet: {
+  projectDesc: {
     fontSize: 13,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
@@ -365,8 +367,14 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
     color: Colors.warmGrayLight,
   },
-  projectMsgCount: {
-    fontSize: 12,
+  slugBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: 140,
+  },
+  slugText: {
+    fontSize: 11,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGrayLight,
   },
@@ -382,7 +390,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.divider,
     zIndex: 10,
-    minWidth: 150,
+    minWidth: 130,
   },
   actionItem: {
     flexDirection: 'row',
@@ -437,64 +445,6 @@ const styles = StyleSheet.create({
   emptyBtnText: {
     fontSize: 14,
     fontFamily: 'DMSans_700Bold',
-    color: Colors.white,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 340,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontFamily: 'DMSans_700Bold',
-    color: Colors.black,
-    marginBottom: 16,
-  },
-  modalInput: {
-    backgroundColor: Colors.inputBg,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    fontFamily: 'DMSans_400Regular',
-    color: Colors.black,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    marginBottom: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  modalBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalBtnCancel: {
-    backgroundColor: Colors.inputBg,
-  },
-  modalBtnCancelText: {
-    fontSize: 14,
-    fontFamily: 'DMSans_600SemiBold',
-    color: Colors.warmGray,
-  },
-  modalBtnSave: {
-    backgroundColor: Colors.primary,
-  },
-  modalBtnSaveText: {
-    fontSize: 14,
-    fontFamily: 'DMSans_600SemiBold',
     color: Colors.white,
   },
 });

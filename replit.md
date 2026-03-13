@@ -59,6 +59,10 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - **Subscription Management**: Stripe-powered tiers with usage tracking and upgrade prompts
 - **Usage Tracking**: Daily generation counts, usage pills in header, billing screen
 - **Upgrade Modals**: Natural prompts when hitting limits or accessing locked agents
+- **Project Builder System**: Multi-file project generation from Builder agent, auto-saved to DB with file editor, live preview, and one-click deployment to `/live/:slug/`
+- **Multi-File Generation**: Builder generates separate index.html, style.css, script.js files using ===FILE: path=== delimiters; parsed by `lib/file-parser.ts`
+- **Live Deployment**: Deploy projects to public URLs at `/live/:slug/`, served directly from database; per-project data API at `/live/:slug/api/data/:collection` for CRUD persistence
+- **Project Detail Screen**: `app/project/[id].tsx` with preview tab (iframe), files tab (code viewer), deploy/undeploy, live URL banner
 
 ## Key Files
 - `app/index.tsx` - Home screen with template gallery banner, agents grid, conversation list, usage pill, and personalized content
@@ -75,7 +79,7 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - `constants/agents.ts` - Agent definitions (prompts, colors, icons, suggestions)
 - `constants/templates.ts` - Template category and template definitions (6 categories, 24 templates)
 - `constants/colors.ts` - Theme colors
-- `shared/schema.ts` - Drizzle schema (users, conversations, messages)
+- `shared/schema.ts` - Drizzle schema (users, conversations, messages, projects, projectFiles, projectData)
 - `shared/subscription.ts` - Subscription tier config, types, and shared logic
 - `lib/auth-context.tsx` - Authentication state management (JWT, user, login/signup/logout)
 - `lib/chat-context.tsx` - Chat state management (dual mode: local for guests, server-backed for logged-in; conversations include agentId)
@@ -102,6 +106,17 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - `POST /api/subscription/checkout` - Create Stripe checkout session
 - `POST /api/subscription/portal` - Create Stripe billing portal session
 - `POST /api/subscription/webhook` - Stripe webhook handler
+- `GET /api/projects` - List user's projects
+- `POST /api/projects` - Create project with optional files
+- `GET /api/projects/:id` - Get project with files
+- `PUT /api/projects/:id` - Update project name/description/files
+- `DELETE /api/projects/:id` - Delete project
+- `POST /api/projects/:id/deploy` - Deploy project (generates slug, sets status=deployed)
+- `POST /api/projects/:id/undeploy` - Take project offline
+- `GET /api/projects/by-conversation/:conversationId` - Find project linked to a conversation
+- `GET /live/:slug/` - Serve deployed project index.html
+- `GET /live/:slug/:fileName` - Serve deployed project static files (CSS, JS, etc.)
+- `GET/POST/DELETE /live/:slug/api/data/:collection` - Per-project data API for CRUD persistence
 
 ## Color Theme
 - Primary: #162E23 (deep forest green)

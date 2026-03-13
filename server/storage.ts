@@ -5,12 +5,18 @@ import {
   conversations,
   messages,
   userSettings,
+  projects,
+  projectFiles,
+  projectData,
   type User,
   type InsertUser,
   type Conversation,
   type InsertConversation,
   type Message,
   type InsertMessage,
+  type Project,
+  type ProjectFile,
+  type ProjectDataRow,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -219,6 +225,114 @@ export class DatabaseStorage implements IStorage {
       .map(([date, count]) => ({ date, count }));
 
     return { totalProjects, totalMessages, agentUsage, recentActivity };
+  }
+
+  async createProject(data: { userId: string; name: string; description?: string; conversationId?: number }): Promise<Project> {
+    const [project] = await db.insert(projects).values(data).returning();
+    return project;
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
+  }
+
+  async getProjectBySlug(slug: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.slug, slug));
+    return project;
+  }
+
+  async getUserProjects(userId: string): Promise<Project[]> {
+    return db
+      .select()
+      .from(projects)
+      .where(eq(projects.userId, userId))
+      .orderBy(desc(projects.updatedAt));
+  }
+
+  async updateProject(id: number, updates: Partial<Pick<Project, 'name' | 'description' | 'status' | 'slug'>>): Promise<Project | undefined> {
+    const [project] = await db
+      .update(projects)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(projects.id, id))
+      .returning();
+    return project;
+  }
+
+  async deleteProject(id: number): Promise<boolean> {
+    const result = await db.delete(projects).where(eq(projects.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getProjectFiles(projectId: number): Promise<ProjectFile[]> {
+    return db
+      .select()
+      .from(projectFiles)
+      .where(eq(projectFiles.projectId, projectId))
+      .orderBy(projectFiles.filePath);
+  }
+
+  async saveProjectFiles(projectId: number, files: { filePath: string; content: string; fileType: string }[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(projectFiles).where(eq(projectFiles.projectId, projectId));
+      if (files.length > 0) {
+        await tx.insert(projectFiles).values(
+          files.map(f => ({ projectId, ...f }))
+        );
+      }
+      await tx
+        .update(projects)
+        .set({ updatedAt: new Date() })
+        .where(eq(projects.id, projectId));
+    });
+  }
+
+  async getProjectData(projectId: number, collection: string): Promise<ProjectDataRow[]> {
+    return db
+      .select()
+      .from(projectData)
+      .where(and(eq(projectData.projectId, projectId), eq(projectData.collection, collection)))
+      .orderBy(projectData.createdAt);
+  }
+
+  async setProjectData(projectId: number, collection: string, key: string, value: string): Promise<ProjectDataRow> {
+    const existing = await db
+      .select()
+      .from(projectData)
+      .where(and(
+        eq(projectData.projectId, projectId),
+        eq(projectData.collection, collection),
+        eq(projectData.key, key)
+      ));
+
+    if (existing.length > 0) {
+      const [row] = await db
+        .update(projectData)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(projectData.id, existing[0].id))
+        .returning();
+      return row;
+    } else {
+      const [row] = await db.insert(projectData).values({ projectId, collection, key, value }).returning();
+      return row;
+    }
+  }
+
+  async deleteProjectData(projectId: number, collection: string, key?: string): Promise<boolean> {
+    let condition = and(eq(projectData.projectId, projectId), eq(projectData.collection, collection));
+    if (key) {
+      condition = and(condition!, eq(projectData.key, key));
+    }
+    const result = await db.delete(projectData).where(condition!).returning();
+    return result.length > 0;
+  }
+
+  async getProjectByConversation(conversationId: number): Promise<Project | undefined> {
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.conversationId, conversationId));
+    return project;
   }
 }
 
