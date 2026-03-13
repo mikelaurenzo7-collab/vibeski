@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/lib/auth-context";
 import { ChatProvider } from "@/lib/chat-context";
+import { SubscriptionProvider } from "@/lib/subscription-context";
 import {
   useFonts,
   DMSans_400Regular,
@@ -28,6 +29,8 @@ function RootLayoutNav() {
       <Stack.Screen name="profile" />
       <Stack.Screen name="preview" options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="templates" />
+      <Stack.Screen name="pricing" />
+      <Stack.Screen name="billing" />
     </Stack>
   );
 }
@@ -54,9 +57,11 @@ export default function RootLayout() {
         <GestureHandlerRootView>
           <KeyboardProvider>
             <AuthProvider>
-              <ChatProvider>
-                <RootLayoutNav />
-              </ChatProvider>
+              <SubscriptionProvider>
+                <ChatProvider>
+                  <RootLayoutNav />
+                </ChatProvider>
+              </SubscriptionProvider>
             </AuthProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>

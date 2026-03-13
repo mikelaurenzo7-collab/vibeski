@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -17,13 +17,20 @@ import Colors from '@/constants/colors';
 import { AGENTS } from '@/constants/agents';
 import { useChat, type Conversation } from '@/lib/chat-context';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/lib/subscription-context';
 import { ConversationItem } from '@/components/ConversationItem';
 import { AgentCard } from '@/components/AgentCard';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { conversations, createConversation, deleteConversation } = useChat();
   const { isLoggedIn, user } = useAuth();
+  const { status, canAccessAgent } = useSubscription();
+  const [upgradeModal, setUpgradeModal] = useState<{ visible: boolean; reason: 'limit_reached' | 'agent_locked'; agentName?: string }>({
+    visible: false,
+    reason: 'limit_reached',
+  });
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
@@ -31,6 +38,17 @@ export default function HomeScreen() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+    if (!canAccessAgent(agentId)) {
+      const agent = AGENTS.find(a => a.id === agentId);
+      setUpgradeModal({ visible: true, reason: 'agent_locked', agentName: agent?.name });
+      return;
+    }
+
+    if (!status.canGenerate) {
+      setUpgradeModal({ visible: true, reason: 'limit_reached' });
+      return;
+    }
+
     const convo = await createConversation(agentId);
     router.push({ pathname: '/chat/[id]', params: { id: convo.id } });
   };
@@ -63,20 +81,34 @@ export default function HomeScreen() {
   const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
   const recentConversations = sortedConversations.slice(0, 5);
 
+  const usageText = status.dailyGenerationsLimit === -1
+    ? 'Unlimited'
+    : `${status.dailyGenerationsUsed}/${status.dailyGenerationsLimit}`;
+
   return (
     <View style={[styles.screen, { paddingBottom: webBottomInset }]}>
       <StatusBar style="light" />
       <View style={[styles.header, { paddingTop: (insets.top || webTopInset) + 16 }]}>
-        <View style={styles.headerTop}>
+        <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerLabel}>FIELD OF DREAMS</Text>
             <Text style={styles.headerSubtitle}>
               {isLoggedIn
                 ? `Welcome, ${user?.username}`
+                : sortedConversations.length > 0
+                ? `${sortedConversations.length} conversation${sortedConversations.length !== 1 ? 's' : ''}`
                 : 'AI Agents'}
             </Text>
           </View>
           <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/billing')}
+              style={({ pressed }) => [styles.usagePill, pressed && { opacity: 0.7 }]}
+            >
+              <Feather name="zap" size={12} color={Colors.accent} />
+              <Text style={styles.usagePillText}>{usageText}</Text>
+            </Pressable>
+
             {isLoggedIn && (
               <Pressable
                 onPress={() => router.push('/projects')}
@@ -86,12 +118,21 @@ export default function HomeScreen() {
                 <Feather name="folder" size={20} color="rgba(255,255,255,0.7)" />
               </Pressable>
             )}
+
             <Pressable
               onPress={() => router.push('/profile')}
               hitSlop={8}
               style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
             >
               <Feather name="user" size={20} color="rgba(255,255,255,0.7)" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push('/billing')}
+              hitSlop={10}
+              style={({ pressed }) => [styles.settingsBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Feather name="settings" size={18} color="rgba(255,255,255,0.5)" />
             </Pressable>
           </View>
         </View>
@@ -152,6 +193,7 @@ export default function HomeScreen() {
               key={agent.id}
               agent={agent}
               onPress={() => handleNewChat(agent.id)}
+              locked={!canAccessAgent(agent.id)}
             />
           ))}
         </ScrollView>
@@ -190,6 +232,13 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      <UpgradeModal
+        visible={upgradeModal.visible}
+        onDismiss={() => setUpgradeModal({ ...upgradeModal, visible: false })}
+        reason={upgradeModal.reason}
+        agentName={upgradeModal.agentName}
+      />
     </View>
   );
 }
@@ -204,7 +253,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 24,
   },
-  headerTop: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -224,12 +273,35 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
   },
   headerBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  usagePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(201, 162, 78, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  usagePillText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_600SemiBold',
+    color: Colors.accent,
+  },
+  settingsBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

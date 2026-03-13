@@ -17,11 +17,13 @@ import Colors from '@/constants/colors';
 import { getAgent } from '@/constants/agents';
 import { useChat, type Message } from '@/lib/chat-context';
 import { useAuth, getAuthToken } from '@/lib/auth-context';
+import { useSubscription } from '@/lib/subscription-context';
 import { streamChat } from '@/lib/stream-chat';
 import { getApiUrl } from '@/lib/query-client';
 import { MessageBubble } from '@/components/MessageBubble';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { ChatInput } from '@/components/ChatInput';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 let messageCounter = 0;
 function generateUniqueId(): string {
@@ -34,6 +36,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const { getConversation, saveMessages } = useChat();
   const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const { refreshStatus } = useSubscription();
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
@@ -42,6 +45,10 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
+  const [upgradeModal, setUpgradeModal] = useState<{ visible: boolean; reason: 'limit_reached' | 'agent_locked' }>({
+    visible: false,
+    reason: 'limit_reached',
+  });
 
   const initializedRef = useRef(false);
   const initialPromptSentRef = useRef(false);
@@ -149,8 +156,26 @@ export default function ChatScreen() {
           });
         }
       }, agent.id);
+
+      refreshStatus();
     } catch (error) {
       setShowTyping(false);
+
+      if (error instanceof Error) {
+        if (error.message === 'LIMIT_REACHED') {
+          setMessages(currentMessages);
+          setUpgradeModal({ visible: true, reason: 'limit_reached' });
+          setIsStreaming(false);
+          return;
+        }
+        if (error.message === 'AGENT_LOCKED') {
+          setMessages(currentMessages);
+          setUpgradeModal({ visible: true, reason: 'agent_locked' });
+          setIsStreaming(false);
+          return;
+        }
+      }
+
       setMessages(prev => [...prev, {
         id: generateUniqueId(),
         role: 'assistant',
@@ -264,6 +289,13 @@ export default function ChatScreen() {
           <ChatInput onSend={handleSend} disabled={isStreaming} />
         </View>
       </KeyboardAvoidingView>
+
+      <UpgradeModal
+        visible={upgradeModal.visible}
+        onDismiss={() => setUpgradeModal({ ...upgradeModal, visible: false })}
+        reason={upgradeModal.reason}
+        agentName={agent.name}
+      />
     </View>
   );
 }
