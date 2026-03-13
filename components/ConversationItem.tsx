@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, GestureResponderEvent } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
+import { getAgent } from '@/constants/agents';
 import type { Conversation } from '@/lib/chat-context';
 
 interface ConversationItemProps {
@@ -29,7 +30,7 @@ function formatTime(timestamp: number): string {
 export function ConversationItem({ conversation, onPress, onDelete, isFirst, isLast }: ConversationItemProps) {
   const lastMessage = conversation.messages[conversation.messages.length - 1];
   const preview = lastMessage?.content.slice(0, 70) || 'No messages yet';
-  const messageCount = conversation.messages.length;
+  const agent = getAgent(conversation.agentId);
 
   return (
     <Pressable
@@ -42,20 +43,20 @@ export function ConversationItem({ conversation, onPress, onDelete, isFirst, isL
       ]}
       testID="conversation-item"
     >
-      <View style={styles.accentLine} />
+      <View style={[styles.agentIcon, { backgroundColor: agent.colorLight }]}>
+        <Feather name={agent.icon} size={16} color={agent.color} />
+      </View>
       <View style={styles.body}>
         <View style={styles.header}>
           <Text style={styles.title} numberOfLines={1}>{conversation.title}</Text>
           <Text style={styles.time}>{formatTime(conversation.updatedAt)}</Text>
         </View>
-        <Text style={styles.preview} numberOfLines={2}>
+        <Text style={styles.preview} numberOfLines={1}>
           {preview}
         </Text>
         <View style={styles.footer}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {messageCount} {messageCount === 1 ? 'message' : 'messages'}
-            </Text>
+          <View style={[styles.badge, { backgroundColor: agent.colorLight }]}>
+            <Text style={[styles.badgeText, { color: agent.color }]}>{agent.name}</Text>
           </View>
           <Pressable
             onPress={(e: GestureResponderEvent) => {
@@ -77,9 +78,14 @@ export function ConversationItem({ conversation, onPress, onDelete, isFirst, isL
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     backgroundColor: Colors.white,
     marginBottom: 1,
     overflow: 'hidden',
+    paddingVertical: 14,
+    paddingLeft: 16,
+    paddingRight: 14,
+    gap: 12,
   },
   containerFirst: {
     borderTopLeftRadius: 16,
@@ -93,19 +99,17 @@ const styles = StyleSheet.create({
   pressed: {
     backgroundColor: Colors.creamDark,
   },
-  accentLine: {
-    width: 3,
-    backgroundColor: Colors.accent,
-    borderRadius: 2,
-    marginVertical: 14,
-    marginLeft: 2,
+  agentIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
   },
   body: {
     flex: 1,
-    paddingVertical: 14,
-    paddingLeft: 14,
-    paddingRight: 18,
-    gap: 6,
+    gap: 5,
   },
   header: {
     flexDirection: 'row',
@@ -113,7 +117,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'DMSans_600SemiBold',
     color: Colors.black,
     flex: 1,
@@ -127,10 +131,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   preview: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'DMSans_400Regular',
     color: Colors.warmGray,
-    lineHeight: 20,
+    lineHeight: 19,
   },
   footer: {
     flexDirection: 'row',
@@ -139,15 +143,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   badge: {
-    backgroundColor: Colors.cream,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   badgeText: {
     fontSize: 11,
-    fontFamily: 'DMSans_500Medium',
-    color: Colors.warmGray,
+    fontFamily: 'DMSans_600SemiBold',
     letterSpacing: 0.2,
   },
   deleteBtn: {

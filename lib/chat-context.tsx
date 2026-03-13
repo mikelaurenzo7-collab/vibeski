@@ -11,6 +11,7 @@ export interface Message {
 export interface Conversation {
   id: string;
   title: string;
+  agentId: string;
   messages: Message[];
   createdAt: number;
   updatedAt: number;
@@ -19,7 +20,7 @@ export interface Conversation {
 interface ChatContextValue {
   conversations: Conversation[];
   isLoading: boolean;
-  createConversation: () => Conversation;
+  createConversation: (agentId: string) => Conversation;
   deleteConversation: (id: string) => void;
   updateConversation: (id: string, updates: Partial<Conversation>) => void;
   getConversation: (id: string) => Conversation | undefined;
@@ -42,7 +43,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setConversations(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        const migrated = parsed.map((c: any) => ({
+          ...c,
+          agentId: c.agentId || 'builder',
+        }));
+        setConversations(migrated);
       }
     } catch (e) {
       console.error('Failed to load conversations:', e);
@@ -59,10 +65,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const createConversation = useCallback(() => {
+  const createConversation = useCallback((agentId: string) => {
     const newConvo: Conversation = {
       id: Crypto.randomUUID(),
       title: 'New Chat',
+      agentId,
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),

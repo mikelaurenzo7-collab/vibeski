@@ -3,9 +3,15 @@ import { getApiUrl } from '@/lib/query-client';
 
 export async function streamChat(
   messages: { role: string; content: string }[],
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  agentId?: string
 ) {
   const baseUrl = getApiUrl();
+
+  const body: Record<string, unknown> = { messages };
+  if (agentId) {
+    body.agentId = agentId;
+  }
 
   const response = await fetch(`${baseUrl}api/chat`, {
     method: 'POST',
@@ -13,7 +19,7 @@ export async function streamChat(
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) throw new Error('Failed to get response');
@@ -38,8 +44,12 @@ export async function streamChat(
       if (data === '[DONE]') continue;
       try {
         const parsed = JSON.parse(data);
+        if (parsed.error) throw new Error(parsed.error);
         if (parsed.content) onChunk(parsed.content);
-      } catch {}
+      } catch (e) {
+        if (e instanceof Error && e.message !== 'An error occurred') continue;
+        throw e;
+      }
     }
   }
 }
