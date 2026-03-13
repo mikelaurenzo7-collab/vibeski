@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, Dimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Dimensions, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 
 let WebView: any = null;
@@ -12,26 +13,81 @@ if (Platform.OS !== 'web') {
 
 interface HtmlPreviewProps {
   html: string;
+  onOpenPreview?: (html: string) => void;
 }
 
-export function HtmlPreview({ html }: HtmlPreviewProps) {
+export function HtmlPreview({ html, onOpenPreview }: HtmlPreviewProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showSource, setShowSource] = useState(false);
   const screenWidth = Dimensions.get('window').width;
   const previewWidth = Math.min(screenWidth - 64, 340);
   const previewHeight = expanded ? 480 : 280;
 
+  const handleToggleSource = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setShowSource(!showSource);
+  };
+
+  const handleFullscreen = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    if (onOpenPreview) {
+      onOpenPreview(html);
+    }
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.headerLeft}>
+        <View style={styles.dots}>
+          <View style={[styles.dot, { backgroundColor: '#FF5F57' }]} />
+          <View style={[styles.dot, { backgroundColor: '#FEBC2E' }]} />
+          <View style={[styles.dot, { backgroundColor: '#28C840' }]} />
+        </View>
+        <Text style={styles.headerText}>Live Preview</Text>
+      </View>
+      <View style={styles.headerActions}>
+        <Pressable onPress={handleToggleSource} hitSlop={8} style={styles.headerActionBtn}>
+          <Feather
+            name="code"
+            size={12}
+            color={showSource ? Colors.accent : Colors.warmGray}
+          />
+        </Pressable>
+        <Pressable onPress={() => setExpanded(!expanded)} hitSlop={8} style={styles.headerActionBtn}>
+          <Feather
+            name={expanded ? "minimize-2" : "maximize-2"}
+            size={12}
+            color={Colors.warmGray}
+          />
+        </Pressable>
+        {onOpenPreview && (
+          <Pressable onPress={handleFullscreen} hitSlop={8} style={styles.headerActionBtn}>
+            <Feather name="external-link" size={12} color={Colors.accent} />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+
+  if (showSource) {
+    return (
+      <View style={[styles.container, { width: previewWidth }]}>
+        {renderHeader()}
+        <ScrollView style={[styles.sourceContainer, { height: previewHeight }]}>
+          <Text style={styles.sourceText} selectable>{html}</Text>
+        </ScrollView>
+      </View>
+    );
+  }
+
   if (Platform.OS === 'web') {
     return (
       <View style={[styles.container, { width: previewWidth }]}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Feather name="globe" size={12} color={Colors.accent} />
-            <Text style={styles.headerText}>Live Preview</Text>
-          </View>
-          <Pressable onPress={() => setExpanded(!expanded)} hitSlop={8}>
-            <Feather name={expanded ? "minimize-2" : "maximize-2"} size={12} color={Colors.warmGray} />
-          </Pressable>
-        </View>
+        {renderHeader()}
         <View style={[styles.iframeContainer, { height: previewHeight }]}>
           <iframe
             srcDoc={html}
@@ -60,15 +116,7 @@ export function HtmlPreview({ html }: HtmlPreviewProps) {
 
   return (
     <View style={[styles.container, { width: previewWidth }]}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Feather name="globe" size={12} color={Colors.accent} />
-          <Text style={styles.headerText}>Live Preview</Text>
-        </View>
-        <Pressable onPress={() => setExpanded(!expanded)} hitSlop={8}>
-          <Feather name={expanded ? "minimize-2" : "maximize-2"} size={12} color={Colors.warmGray} />
-        </Pressable>
-      </View>
+      {renderHeader()}
       <WebView
         source={{ html }}
         style={{ height: previewHeight, backgroundColor: '#ffffff' }}
@@ -95,14 +143,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: Colors.cream,
+    backgroundColor: '#F6F5F4',
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  dots: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   headerText: {
     fontSize: 11,
@@ -111,8 +168,29 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  headerActionBtn: {
+    width: 28,
+    height: 24,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   iframeContainer: {
     backgroundColor: '#ffffff',
+  },
+  sourceContainer: {
+    backgroundColor: Colors.primaryDark,
+    padding: 12,
+  },
+  sourceText: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#D4D4D4',
   },
   fallback: {
     padding: 20,

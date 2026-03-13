@@ -8,6 +8,7 @@ import { HtmlPreview } from '@/components/HtmlPreview';
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
   content: string;
+  onOpenPreview?: (html: string) => void;
 }
 
 interface ParsedBlock {
@@ -186,7 +187,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
   );
 }
 
-export function MessageBubble({ role, content }: MessageBubbleProps) {
+export function MessageBubble({ role, content, onOpenPreview }: MessageBubbleProps) {
   const isUser = role === 'user';
 
   if (isUser) {
@@ -213,7 +214,7 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
           if (block.type === 'html-preview') {
             return (
               <View key={i}>
-                <HtmlPreview html={block.content} />
+                <HtmlPreview html={block.content} onOpenPreview={onOpenPreview} />
               </View>
             );
           }
