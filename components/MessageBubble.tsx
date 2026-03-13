@@ -58,10 +58,10 @@ function parseContent(content: string): ParsedBlock[] {
 }
 
 function InlineMarkdown({ text, isUser }: { text: string; isUser: boolean }) {
-  const baseColor = isUser ? '#F5F2EC' : Colors.blackSoft;
-  const boldColor = isUser ? '#FFFFFF' : Colors.black;
+  const baseColor = isUser ? Colors.userText : Colors.blackSoft;
+  const boldColor = isUser ? Colors.white : Colors.black;
   const codeColor = isUser ? 'rgba(255,255,255,0.15)' : 'rgba(22,46,35,0.06)';
-  const codeFg = isUser ? '#F5F2EC' : Colors.primaryLight;
+  const codeFg = isUser ? Colors.userText : Colors.primaryLight;
 
   const elements = useMemo(() => {
     const result: React.ReactNode[] = [];
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   textUser: {
-    color: '#F5F2EC',
+    color: Colors.userText,
   },
   heading1: {
     fontSize: 18,
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 12,
     lineHeight: 18,
-    color: '#D4D4D4',
+    color: Colors.codeText,
   },
   projectBlock: {
     backgroundColor: Colors.accentSubtle,

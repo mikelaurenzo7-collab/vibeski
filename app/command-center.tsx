@@ -248,7 +248,7 @@ export default function CommandCenterScreen() {
           </View>
           <View style={styles.overviewCard}>
             <View style={[styles.overviewIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.08)' }]}>
-              <Feather name="cpu" size={18} color="#8B5CF6" />
+              <Feather name="cpu" size={18} color={Colors.premium} />
             </View>
             <Text style={styles.overviewNumber}>{agentSet.size}</Text>
             <Text style={styles.overviewLabel}>Agents Used</Text>
@@ -747,7 +747,7 @@ export default function CommandCenterScreen() {
               style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
             >
               <View style={[styles.menuIcon, { backgroundColor: 'rgba(139, 92, 246, 0.08)' }]}>
-                <Feather name="file-text" size={16} color="#8B5CF6" />
+                <Feather name="file-text" size={16} color={Colors.premium} />
               </View>
               <Text style={styles.menuText}>Export as Plain Text</Text>
               <Feather name="chevron-right" size={16} color={Colors.warmGrayLight} />
@@ -827,7 +827,7 @@ export default function CommandCenterScreen() {
             <View style={styles.menuDivider} />
             <Pressable style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}>
               <View style={[styles.menuIcon, { backgroundColor: 'rgba(139, 92, 246, 0.08)' }]}>
-                <Feather name="book" size={16} color="#8B5CF6" />
+                <Feather name="book" size={16} color={Colors.premium} />
               </View>
               <Text style={styles.menuText}>Terms of Service</Text>
               <Feather name="external-link" size={14} color={Colors.warmGrayLight} />

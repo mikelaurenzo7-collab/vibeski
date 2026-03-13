@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
   Linking,
+  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -65,7 +66,7 @@ function CreditCostTable() {
       </View>
       <View style={styles.creditRow}>
         <View style={[styles.creditBadge, { backgroundColor: 'rgba(139,92,246,0.1)' }]}>
-          <Text style={[styles.creditBadgeText, { color: '#8B5CF6' }]}>3</Text>
+          <Text style={[styles.creditBadgeText, { color: Colors.premium }]}>3</Text>
         </View>
         <Text style={styles.creditAgents}>
           {premium.map(([name]) => displayName(name)).join(', ')}
@@ -201,6 +202,7 @@ export default function PricingScreen() {
       }
     } catch (e) {
       console.error('Checkout error:', e);
+      Alert.alert('Checkout Error', 'Unable to start checkout. Please try again.');
     } finally {
       setLoadingTier(null);
     }

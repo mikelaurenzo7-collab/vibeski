@@ -157,7 +157,7 @@ export default function PreviewScreen() {
                   transform: `scale(${scale})`,
                   transformOrigin: 'top left',
                 } as any}
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts allow-forms allow-popups"
               />
             ) : WebView ? (
               <WebView

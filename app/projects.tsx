@@ -203,15 +203,15 @@ export default function ProjectsScreen() {
             <Feather
               name={isDeployed ? 'globe' : 'box'}
               size={16}
-              color={isDeployed ? '#28C840' : Colors.accent}
+              color={isDeployed ? Colors.live : Colors.accent}
             />
           </View>
           <View style={styles.projectInfo}>
             <Text style={styles.projectTitle} numberOfLines={1}>{item.name}</Text>
             <View style={styles.projectMeta}>
               <View style={[styles.statusPill, isDeployed ? styles.statusPillLive : styles.statusPillDraft]}>
-                <View style={[styles.statusDotSmall, { backgroundColor: isDeployed ? '#28C840' : Colors.warmGrayLight }]} />
-                <Text style={[styles.statusLabel, { color: isDeployed ? '#28C840' : Colors.warmGray }]}>
+                <View style={[styles.statusDotSmall, { backgroundColor: isDeployed ? Colors.live : Colors.warmGrayLight }]} />
+                <Text style={[styles.statusLabel, { color: isDeployed ? Colors.live : Colors.warmGray }]}>
                   {isDeployed ? 'Live' : 'Draft'}
                 </Text>
               </View>

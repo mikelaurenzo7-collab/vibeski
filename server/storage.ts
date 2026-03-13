@@ -373,7 +373,13 @@ export class DatabaseStorage implements IStorage {
       .from(projectVersions)
       .where(and(eq(projectVersions.id, versionId), eq(projectVersions.projectId, projectId)));
     if (!version) return false;
-    const files = JSON.parse(version.filesSnapshot) as { filePath: string; content: string; fileType: string }[];
+    let files: { filePath: string; content: string; fileType: string }[];
+    try {
+      files = JSON.parse(version.filesSnapshot);
+    } catch {
+      console.error("Corrupt version snapshot for version", versionId);
+      return false;
+    }
     await this.saveProjectFiles(projectId, files);
     return true;
   }

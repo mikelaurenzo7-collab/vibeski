@@ -17,14 +17,22 @@ const Colors = {
   blackSoft: '#2C2A26',
   error: '#B83B3B',
   success: '#2F6B47',
+  live: '#28C840',
+  premium: '#8B5CF6',
   userBubble: '#162E23',
+  userText: '#F5F2EC',
   assistantBubble: '#FFFFFF',
+  codeBackground: '#1E1E2E',
+  codeText: '#D4D4D4',
   inputBg: '#F2EDE5',
   divider: '#EBE5DB',
   skeleton: '#E8E2D8',
   overlay: 'rgba(22, 46, 35, 0.04)',
   shadowLight: 'rgba(22, 46, 35, 0.06)',
   shadowMedium: 'rgba(22, 46, 35, 0.12)',
+  windowClose: '#FF5F57',
+  windowMinimize: '#FEBC2E',
+  windowMaximize: '#28C840',
 };
 
 export default Colors;
