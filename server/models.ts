@@ -1,1 +1,1 @@
-export type ProviderName = 'raptor' | 'gemini';
+export type ProviderName = 'raptor' | 'openai' | 'anthropic' | 'grok' | 'gemini';

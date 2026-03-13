@@ -12,7 +12,7 @@ I prefer a component-based architecture for UI development.
 I expect clear communication regarding progress and any potential roadblocks.
 
 ## System Architecture
-The application is built with an Expo React Native frontend utilizing Expo Router for file-based routing. The backend is an Express.js server. The AI architecture employs a multi-model strategy, with Raptor (gpt-4.1-mini) as the primary model and Gemini (gemini-2.5-flash) as a fallback, ensuring robust AI capabilities. State management is handled by AsyncStorage for conversation persistence and React Context for shared application state.
+The application is built with an Expo React Native frontend utilizing Expo Router for file-based routing. The backend is an Express.js server. The AI architecture employs a multi-model strategy with 5 user-selectable providers: Raptor (gpt-4.1-mini, default), OpenAI (gpt-4o-mini), Anthropic (Claude Sonnet), Grok (grok-3-mini-fast), and Gemini (gemini-2.5-flash). Users select their preferred model in Command Center settings; if their chosen provider is unavailable, the system auto-falls back through all available providers. State management is handled by AsyncStorage for conversation persistence and React Context for shared application state.
 
 **UI/UX Decisions:**
 - **Color Scheme**: Deep forest green (#162E23) as primary, golden amber (#C9A24E) as accent, and warm cream (#FAF6EF) as background. Each agent has a distinct color accent.
@@ -32,8 +32,10 @@ The application is built with an Expo React Native frontend utilizing Expo Route
 
 ## External Dependencies
 - **Stripe**: For subscription management, checkout, billing portal, and webhook handling.
-- **@google/generative-ai**: Google Gemini SDK for fallback AI model.
+- **@google/generative-ai**: Google Gemini SDK for Gemini model.
+- **@anthropic-ai/sdk**: Anthropic SDK for Claude model.
 - **@replit/ai-integrations**: Primary AI model (Raptor).
+- **openai**: OpenAI SDK (also used for Grok via xAI base URL).
 - **PostgreSQL**: Database managed via Replit, accessed using Drizzle ORM.
 - **react-native-webview**: For rendering native HTML previews within the application.
 - **express-rate-limit**: Middleware for rate limiting API requests.

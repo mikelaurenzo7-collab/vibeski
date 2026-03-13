@@ -645,9 +645,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/model-preference", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const settings = await storage.getUserSettings(userId);
+      res.json({ model: settings['preferred_model'] || 'raptor' });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch model preference" });
+    }
+  });
+
+  app.put("/api/model-preference", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const validModels = ['raptor', 'openai', 'anthropic', 'grok', 'gemini'];
+      const model = req.body.model;
+      if (!validModels.includes(model)) return res.status(400).json({ error: "Invalid model" });
+      await storage.setUserSetting(userId, 'preferred_model', model);
+      res.json({ success: true, model });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save model preference" });
+    }
+  });
+
   app.post("/api/chat", aiRateLimiter, requireAuth, async (req: AuthRequest, res) => {
     try {
-      const { messages, agentId } = req.body;
+      const { messages, agentId, preferredModel } = req.body;
       const deviceId = req.userId || (req.headers['x-device-id'] as string) || 'anonymous';
 
       if (!messages || !Array.isArray(messages)) {
@@ -726,15 +751,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const maxTokens = tierConfig.limits.maxTokens || 4096;
 
       let streamed = false;
+      const selectedModel = preferredModel || 'raptor';
 
-      try {
+      const streamOpenAICompatible = async (apiKey: string, baseURL: string, modelName: string, label: string) => {
         const OpenAI = (await import("openai")).default;
-        const client = new OpenAI({
-          apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-          baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-        });
+        const client = new OpenAI({ apiKey, baseURL });
         const stream = await client.chat.completions.create({
-          model: 'gpt-4.1-mini',
+          model: modelName,
           messages: apiMessages,
           stream: true,
           max_completion_tokens: maxTokens,
@@ -746,36 +769,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
             streamed = true;
           }
         }
-      } catch (raptorError) {
-        console.error("[raptor] failed, trying gemini:", (raptorError as Error).message);
-        if (!streamed && process.env.GOOGLE_API_KEY) {
-          try {
-            const { GoogleGenerativeAI } = await import("@google/generative-ai");
-            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-            const model = genAI.getGenerativeModel({
-              model: 'gemini-2.5-flash',
-              systemInstruction: systemPrompt,
-            });
-            const history = sanitized.slice(0, -1).map((m: any) => ({
-              role: m.role === 'assistant' ? 'model' as const : 'user' as const,
-              parts: [{ text: m.content }],
-            }));
-            const lastMsg = sanitized[sanitized.length - 1];
-            const chat = model.startChat({ history });
-            const result = await chat.sendMessageStream(lastMsg.content);
-            for await (const chunk of result.stream) {
-              const text = chunk.text();
-              if (text) {
-                res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
-                streamed = true;
-              }
-            }
-          } catch (geminiError) {
-            console.error("[gemini] also failed:", (geminiError as Error).message);
-            res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
+      };
+
+      const streamGemini = async () => {
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction: systemPrompt,
+        });
+        const history = sanitized.slice(0, -1).map((m: any) => ({
+          role: m.role === 'assistant' ? 'model' as const : 'user' as const,
+          parts: [{ text: m.content }],
+        }));
+        const lastMsg = sanitized[sanitized.length - 1];
+        const chat = model.startChat({ history });
+        const result = await chat.sendMessageStream(lastMsg.content);
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+            streamed = true;
           }
-        } else if (!streamed) {
-          res.write(`data: ${JSON.stringify({ error: "Service temporarily unavailable" })}\n\n`);
+        }
+      };
+
+      const streamAnthropic = async () => {
+        const Anthropic = (await import("@anthropic-ai/sdk")).default;
+        const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+        const systemMsg = apiMessages.find(m => m.role === 'system')?.content || '';
+        const nonSystemMsgs = apiMessages.filter(m => m.role !== 'system').map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }));
+        const stream = await client.messages.stream({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens,
+          system: systemMsg,
+          messages: nonSystemMsgs,
+        });
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            const text = event.delta.text;
+            if (text) {
+              res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+              streamed = true;
+            }
+          }
+        }
+      };
+
+      const providers: { id: string; fn: () => Promise<void>; available: boolean }[] = [
+        {
+          id: 'raptor',
+          fn: () => streamOpenAICompatible(
+            process.env.AI_INTEGRATIONS_OPENAI_API_KEY!,
+            process.env.AI_INTEGRATIONS_OPENAI_BASE_URL!,
+            'gpt-4.1-mini', 'raptor'
+          ),
+          available: !!(process.env.AI_INTEGRATIONS_OPENAI_API_KEY && process.env.AI_INTEGRATIONS_OPENAI_BASE_URL),
+        },
+        {
+          id: 'openai',
+          fn: () => streamOpenAICompatible(process.env.OAI_API_KEY!, 'https://api.openai.com/v1', 'gpt-4o-mini', 'openai'),
+          available: !!process.env.OAI_API_KEY,
+        },
+        {
+          id: 'anthropic',
+          fn: () => streamAnthropic(),
+          available: !!process.env.ANTHROPIC_API_KEY,
+        },
+        {
+          id: 'grok',
+          fn: () => streamOpenAICompatible(process.env.GROK_API_KEY!, 'https://api.x.ai/v1', 'grok-3-mini-fast', 'grok'),
+          available: !!process.env.GROK_API_KEY,
+        },
+        {
+          id: 'gemini',
+          fn: () => streamGemini(),
+          available: !!process.env.GOOGLE_API_KEY,
+        },
+      ];
+
+      const primary = providers.find(p => p.id === selectedModel && p.available);
+      const fallbacks = providers.filter(p => p.id !== selectedModel && p.available);
+
+      try {
+        if (primary) {
+          await primary.fn();
+        } else {
+          throw new Error(`${selectedModel} not available`);
+        }
+      } catch (primaryError) {
+        console.error(`[${selectedModel}] failed:`, (primaryError as Error).message);
+        if (!streamed) {
+          let fallbackSuccess = false;
+          for (const fb of fallbacks) {
+            try {
+              await fb.fn();
+              fallbackSuccess = true;
+              break;
+            } catch (fbError) {
+              console.error(`[${fb.id}] fallback failed:`, (fbError as Error).message);
+            }
+          }
+          if (!fallbackSuccess) {
+            res.write(`data: ${JSON.stringify({ error: "All AI providers are temporarily unavailable. Please try again." })}\n\n`);
+          }
         }
       }
 

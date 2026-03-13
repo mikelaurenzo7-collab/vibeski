@@ -62,9 +62,11 @@ export default function RootLayout() {
           <KeyboardProvider>
             <AuthProvider>
               <SubscriptionProvider>
-                <ChatProvider>
-                  <RootLayoutNav />
-                </ChatProvider>
+                <ModelProvider>
+                  <ChatProvider>
+                    <RootLayoutNav />
+                  </ChatProvider>
+                </ModelProvider>
               </SubscriptionProvider>
             </AuthProvider>
           </KeyboardProvider>

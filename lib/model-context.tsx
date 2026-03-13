@@ -14,10 +14,10 @@ export interface ModelConfig {
 
 export const MODELS: Record<ModelProvider, ModelConfig> = {
   raptor: { id: 'raptor', name: 'Raptor (Primary)', description: 'Field of Dreams\' optimized model', icon: '🦅' },
-  openai: { id: 'openai', name: 'GPT-4', description: 'OpenAI\' advanced reasoning', icon: '✨' },
-  anthropic: { id: 'anthropic', name: 'Claude', description: 'Anthropic\' nuanced understanding', icon: '🧠' },
-  grok: { id: 'grok', name: 'Grok', description: 'xAI\' witty and factual', icon: '⚡' },
-  gemini: { id: 'gemini', name: 'Gemini', description: 'Google\' multimodal expert', icon: '🌐' },
+  openai: { id: 'openai', name: 'GPT-4', description: 'OpenAI advanced reasoning', icon: '✨' },
+  anthropic: { id: 'anthropic', name: 'Claude', description: 'Anthropic nuanced understanding', icon: '🧠' },
+  grok: { id: 'grok', name: 'Grok', description: 'xAI witty and factual', icon: '⚡' },
+  gemini: { id: 'gemini', name: 'Gemini', description: 'Google multimodal expert', icon: '🌐' },
 };
 
 interface ModelContextValue {

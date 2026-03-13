@@ -24,6 +24,7 @@ import { useChat } from '@/lib/chat-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { AGENTS } from '@/constants/agents';
 import { getApiUrl } from '@/lib/query-client';
+import { useModel, MODELS, type ModelProvider as ModelProviderType } from '@/lib/model-context';
 
 type TabId = 'overview' | 'analytics' | 'secrets' | 'integrations' | 'settings' | 'data' | 'security';
 
@@ -61,6 +62,8 @@ export default function CommandCenterScreen() {
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const { conversations } = useChat();
   const { status } = useSubscription();
+  const { preferredModel, setPreferredModel } = useModel();
+  const modelKeys = Object.keys(MODELS) as ModelProviderType[];
   const webTopInset = Platform.OS === 'web' ? 67 : 0;
   const webBottomInset = Platform.OS === 'web' ? 34 : 0;
 
@@ -546,9 +549,40 @@ export default function CommandCenterScreen() {
     const defaultAgent = settings.default_agent || 'builder';
     const theme = settings.theme || 'system';
     const notifications = settings.notifications !== 'false';
-
     return (
       <View style={styles.tabContent}>
+        <View style={styles.sectionBlock}>
+          <Text style={styles.sectionLabel}>AI MODEL</Text>
+          <Text style={[styles.settingDesc, { marginBottom: 12, paddingHorizontal: 4 }]}>Choose your preferred AI brain. If unavailable, we auto-fallback to the next.</Text>
+          <View style={{ gap: 8 }}>
+            {modelKeys.map((key) => {
+              const m = MODELS[key];
+              const isActive = preferredModel === key;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setPreferredModel(key);
+                  }}
+                  style={[
+                    styles.infoCard,
+                    { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
+                    isActive && { borderColor: Colors.accent, borderWidth: 2 },
+                  ]}
+                >
+                  <Text style={{ fontSize: 22 }}>{m.icon}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.settingTitle, isActive && { color: Colors.accent }]}>{m.name}</Text>
+                    <Text style={styles.settingDesc}>{m.description}</Text>
+                  </View>
+                  {isActive && <Feather name="check-circle" size={20} color={Colors.accent} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionLabel}>PREFERENCES</Text>
           <View style={styles.infoCard}>
