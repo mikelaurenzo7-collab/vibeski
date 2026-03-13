@@ -118,20 +118,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveMessages(conversationId: number, msgs: { role: string; content: string }[]): Promise<void> {
-    await db.delete(messages).where(eq(messages.conversationId, conversationId));
-    if (msgs.length > 0) {
-      await db.insert(messages).values(
-        msgs.map((m) => ({
-          conversationId,
-          role: m.role,
-          content: m.content,
-        }))
-      );
-    }
-    await db
-      .update(conversations)
-      .set({ updatedAt: new Date() })
-      .where(eq(conversations.id, conversationId));
+    await db.transaction(async (tx) => {
+      await tx.delete(messages).where(eq(messages.conversationId, conversationId));
+      if (msgs.length > 0) {
+        await tx.insert(messages).values(
+          msgs.map((m) => ({
+            conversationId,
+            role: m.role,
+            content: m.content,
+          }))
+        );
+      }
+      await tx
+        .update(conversations)
+        .set({ updatedAt: new Date() })
+        .where(eq(conversations.id, conversationId));
+    });
   }
 }
 

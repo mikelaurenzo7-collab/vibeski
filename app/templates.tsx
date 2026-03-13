@@ -254,10 +254,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: Colors.divider,
-    shadowColor: Colors.shadowLight,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
+    boxShadow: '0px 2px 6px rgba(22, 46, 35, 0.06)',
     elevation: 2,
   },
   templateCardPressed: {

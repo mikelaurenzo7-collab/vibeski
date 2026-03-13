@@ -94,10 +94,7 @@ const styles = StyleSheet.create({
     gap: 5,
     borderWidth: 1,
     borderColor: Colors.divider,
-    shadowColor: Colors.shadowLight,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 3,
+    boxShadow: '0px 1px 3px rgba(22, 46, 35, 0.06)',
     elevation: 1,
   },
   dot: {

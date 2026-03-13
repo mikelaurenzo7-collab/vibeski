@@ -124,9 +124,18 @@ FIELD OF DREAMS is a premium AI agent platform built as a mobile app with Expo R
 - SSE streaming in Express: Uses inline `for await` directly on OpenAI/Gemini SDK stream objects. Wrapping streams in separate async generator classes causes buffering issues in Express POST handlers — keep streaming logic inline.
 - CORS: Allows `Content-Type`, `Authorization`, and `x-device-id` headers
 
+## Security & Hardening
+- **Rate Limiting**: `express-rate-limit` on auth endpoints (20 req/15min) and AI endpoints (30 req/min)
+- **Auth Required**: `/api/chat`, `/api/generate-image`, `/api/understand-image` all require JWT authentication
+- **JWT Error Logging**: Auth middleware logs JWT verification failures for debugging
+- **Input Validation**: Zod schemas validate conversation create/update payloads
+- **Transaction Safety**: `saveMessages` uses a database transaction to prevent data loss on partial failure
+- **Auth in Streaming**: `lib/stream-chat.ts` sends the auth token with streaming chat requests
+
 ## Dependencies (Notable)
 - stripe - Stripe payment SDK
 - @google/generative-ai - Google Gemini SDK
+- express-rate-limit - Rate limiting middleware
 - react-native-webview - For native HTML previews
 - react-native-reanimated - Animations
 - react-native-keyboard-controller - Keyboard handling

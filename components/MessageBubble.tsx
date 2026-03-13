@@ -275,10 +275,7 @@ const styles = StyleSheet.create({
   bubbleAssistant: {
     backgroundColor: Colors.assistantBubble,
     borderBottomLeftRadius: 4,
-    shadowColor: Colors.shadowLight,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 3,
+    boxShadow: '0px 1px 3px rgba(22, 46, 35, 0.06)',
     elevation: 1,
     borderWidth: 1,
     borderColor: Colors.divider,
