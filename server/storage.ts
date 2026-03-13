@@ -8,6 +8,7 @@ import {
   projects,
   projectFiles,
   projectData,
+  projectVersions,
   userMemories,
   conversationSummaries,
   type User,
@@ -19,6 +20,7 @@ import {
   type Project,
   type ProjectFile,
   type ProjectDataRow,
+  type ProjectVersion,
   type UserMemory,
   type ConversationSummary,
 } from "@shared/schema";
@@ -337,6 +339,59 @@ export class DatabaseStorage implements IStorage {
       .from(projects)
       .where(eq(projects.conversationId, conversationId));
     return project;
+  }
+
+  async saveProjectVersion(projectId: number, description?: string): Promise<ProjectVersion> {
+    const files = await this.getProjectFiles(projectId);
+    const versions = await db
+      .select()
+      .from(projectVersions)
+      .where(eq(projectVersions.projectId, projectId))
+      .orderBy(desc(projectVersions.versionNumber))
+      .limit(1);
+    const nextVersion = versions.length > 0 ? versions[0].versionNumber + 1 : 1;
+    const [version] = await db.insert(projectVersions).values({
+      projectId,
+      versionNumber: nextVersion,
+      filesSnapshot: JSON.stringify(files.map(f => ({ filePath: f.filePath, content: f.content, fileType: f.fileType }))),
+      description,
+    }).returning();
+    return version;
+  }
+
+  async getProjectVersions(projectId: number): Promise<ProjectVersion[]> {
+    return db
+      .select()
+      .from(projectVersions)
+      .where(eq(projectVersions.projectId, projectId))
+      .orderBy(desc(projectVersions.versionNumber));
+  }
+
+  async restoreProjectVersion(projectId: number, versionId: number): Promise<boolean> {
+    const [version] = await db
+      .select()
+      .from(projectVersions)
+      .where(and(eq(projectVersions.id, versionId), eq(projectVersions.projectId, projectId)));
+    if (!version) return false;
+    const files = JSON.parse(version.filesSnapshot) as { filePath: string; content: string; fileType: string }[];
+    await this.saveProjectFiles(projectId, files);
+    return true;
+  }
+
+  async forkProject(projectId: number, userId: string): Promise<Project | undefined> {
+    const [original] = await db.select().from(projects).where(eq(projects.id, projectId));
+    if (!original) return undefined;
+    const files = await this.getProjectFiles(projectId);
+    const [forked] = await db.insert(projects).values({
+      userId,
+      name: `${original.name} (Copy)`,
+      description: original.description,
+      status: 'draft',
+    }).returning();
+    if (files.length > 0) {
+      await this.saveProjectFiles(forked.id, files.map(f => ({ filePath: f.filePath, content: f.content, fileType: f.fileType })));
+    }
+    return forked;
   }
 
   async getUserMemories(userId: string, category?: string): Promise<UserMemory[]> {
