@@ -21,7 +21,7 @@ const FREE_AGENTS = ['builder', 'writer'];
 const DEFAULT_STATUS: SubscriptionStatus = {
   tier: 'free',
   dailyGenerationsUsed: 0,
-  dailyGenerationsLimit: 10,
+  dailyGenerationsLimit: 25,
   canGenerate: true,
   monthlyCreditsUsed: 0,
   monthlyCreditsLimit: 0,
