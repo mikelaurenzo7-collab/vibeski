@@ -17,6 +17,12 @@ function setupCors(app: express.Application) {
   app.use((req, res, next) => {
     const origins = new Set<string>();
 
+    // Production: allow Railway domain and custom APP_URL
+    if (process.env.APP_URL) {
+      origins.add(process.env.APP_URL);
+    }
+
+    // Legacy Replit support (no-op outside Replit)
     if (process.env.REPLIT_DEV_DOMAIN) {
       origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
     }
@@ -34,7 +40,10 @@ function setupCors(app: express.Application) {
       origin?.startsWith("http://localhost:") ||
       origin?.startsWith("http://127.0.0.1:");
 
-    if (origin && (origins.has(origin) || isLocalhost)) {
+    // Allow Expo Go and EAS builds (exp:// scheme handled by mobile, but web needs these)
+    const isExpoDomain = origin?.includes(".expo.dev") || origin?.includes(".exp.direct");
+
+    if (origin && (origins.has(origin) || isLocalhost || isExpoDomain)) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header(
         "Access-Control-Allow-Methods",
@@ -87,7 +96,7 @@ function setupRequestLogging(app: express.Application) {
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+        logLine = logLine.slice(0, 79) + "\u2026";
       }
 
       log(logLine);
@@ -206,6 +215,18 @@ function configureExpoAndLanding(app: express.Application) {
   log("Expo routing: Checking expo-platform header on / and /manifest");
 }
 
+function setupHealthCheck(app: express.Application) {
+  // Railway health check endpoint
+  app.get("/api/health", (_req: Request, res: Response) => {
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || "1.0.0",
+      env: process.env.NODE_ENV || "development",
+    });
+  });
+}
+
 function setupErrorHandler(app: express.Application) {
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     const error = err as {
@@ -231,6 +252,7 @@ function setupErrorHandler(app: express.Application) {
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
+  setupHealthCheck(app);
 
   configureExpoAndLanding(app);
 
@@ -246,7 +268,8 @@ function setupErrorHandler(app: express.Application) {
       reusePort: true,
     },
     () => {
-      log(`express server serving on port ${port}`);
+      log(`Field of Dreams server live on port ${port}`);
+      log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     },
   );
 })();
